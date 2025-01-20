@@ -158,7 +158,7 @@ inline constexpr uint16_t LoggerMaxMessageSize = 512;
 /**
  * @brief Size of the map holding references to each Parameter object for the ST[20] parameter service
  */
-inline constexpr uint16_t ECSSParameterCount = 1000;
+inline constexpr uint16_t ECSSParameterCount = 1500;
 
 /**
  * @brief Defines whether the optional CRC field is included
