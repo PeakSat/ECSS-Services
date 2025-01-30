@@ -1,8 +1,12 @@
 #ifndef ECSS_SERVICES_SERVICEPOOL_HPP
 #define ECSS_SERVICES_SERVICEPOOL_HPP
 
+#ifdef COMMS_SW
+#include "COMMS_ECSS_Configuration.hpp"
+#else
 #include "ECSS_Configuration.hpp"
-#include "DummyService.hpp"
+#endif
+
 #include "EventActionService.hpp"
 #include "EventReportService.hpp"
 #include "FileManagementService.hpp"
@@ -48,9 +52,9 @@ class ServicePool {
 	inline static const uint8_t MaxPacketSequenceCounterBit = 14U;
 
 public:
-#ifdef SERVICE_DUMMY
-	DummyService dummyService;
-#endif
+// #ifdef SERVICE_DUMMY
+// 	DummyService dummyService;
+// #endif
 
 #ifdef SERVICE_EVENTACTION
 	EventActionService eventAction;

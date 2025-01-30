@@ -4,7 +4,9 @@
 #include <TimeStamp.hpp>
 #include <cstdint>
 #include <etl/String.hpp>
+
 #include <etl/wstring.h>
+
 #include "ECSS_Definitions.hpp"
 #include "Time.hpp"
 #include "macros.hpp"

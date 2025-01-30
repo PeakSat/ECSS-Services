@@ -1,8 +1,12 @@
 #ifndef ECSS_SERVICES_ETL_STRING_HPP
 #define ECSS_SERVICES_ETL_STRING_HPP
 
-#include <cstddef>
+// #include <cstddef>
+// #ifdef COMMS_SW
+// #include "../../Lib/etl-20.38.17/include/etl/string.h"
+// #else
 #include <etl/string.h>
+// #endif
 
 /**
  * A fixed-size string
