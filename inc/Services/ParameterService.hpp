@@ -4,8 +4,8 @@
 #include <optional>
 #include "ECSS_Definitions.hpp"
 #include "ErrorHandler.hpp"
-#include "Parameter.hpp"
 #include "Service.hpp"
+#include "MemoryManagementTask.hpp"
 #include "etl/map.h"
 
 /**
@@ -24,24 +24,7 @@
  */
 class ParameterService : public Service {
 private:
-	typedef etl::map<uint16_t, std::reference_wrapper<ParameterBase>, ECSSParameterCount> ParameterMap;
 
-	/**
-	 * Map storing the IDs and references to each parameter
-	 * of the \ref PlatformParameters namespace.
-	 * The key of the map is the ID of the parameter as specified in PUS.
-	 * The parameters here are under the responsibility of \ref ParameterService.
-	 */
-	ParameterMap parameters;
-
-	/**
-	 * Different subsystems should have their own implementations of this function,
-	 * inside the src/Platform directory of their main project.
-	 *
-	 * @return map containing the initial parameters drawn
-	 * 		   from \ref PlatformParameters namespace
-	 */
-	void initializeParameterMap();
 
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 20;
@@ -58,7 +41,6 @@ public:
 	 */
 	ParameterService() {
 		serviceType = ServiceType;
-		initializeParameterMap();
 	}
 
 	/**
@@ -69,23 +51,10 @@ public:
 	 * @return True if there is a reference to a parameter with the given ID, False otherwise
 	 */
 	bool parameterExists(ParameterId parameterId) const {
-		return parameters.find(parameterId) != parameters.end();
+		// TODO Add parameter Upper lower limit check
+		return true;
 	}
 
-	/**
-	 * This is a simple getter function, which returns a reference to
-	 * a specified parameter, from the \var parameters.
-	 *
-	 * @param parameterId the id of the parameter, whose reference is to be returned.
-	 */
-	std::optional<std::reference_wrapper<ParameterBase>> getParameter(ParameterId parameterId) const {
-		auto parameter = parameters.find(parameterId);
-
-		if (parameter != parameters.end()) {
-			return parameter->second;
-		}
-		return {};
-	}
 
 	/**
 	 * This function receives a TC[20, 1] packet and returns a TM[20, 2] packet
@@ -104,7 +73,11 @@ public:
 	 *
 	 * @param newParamValues: a valid TC[20, 3] message carrying parameter ID and replacement value
 	 */
-	void setParameters(Message& newParamValues) const;
+	void setParameters(Message& newParamValues);
+
+	void appendParameterToMessage(Message& message, ParameterId parameter);
+
+	void updateParameterFromMessage(Message& message, ParameterId parameter);
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
