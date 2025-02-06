@@ -5,6 +5,7 @@
 #include <ctime>
 #include "TimeStamp.hpp"
 #include "UTCTimestamp.hpp"
+#include "TimeKeepingTask.hpp"
 
 /**
  * @brief Get the current time
