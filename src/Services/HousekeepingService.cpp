@@ -123,9 +123,7 @@ void HousekeepingService::housekeepingParametersReport(ParameterReportStructureI
 
 	housekeepingReport.append<ParameterReportStructureId>(structureId);
 	for (auto id: housekeepingStructure.simplyCommutatedParameterIds) {
-		if (auto parameter = Services.parameterManagement.getParameter(id)) {
-			parameter->get().appendValueToMessage(housekeepingReport);
-		}
+		Services.parameterManagement.appendParameterToMessage(housekeepingReport, id);
 	}
 	storeMessage(housekeepingReport);
 }
