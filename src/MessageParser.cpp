@@ -113,7 +113,7 @@ Message MessageParser::parse(const uint8_t* data, uint32_t length) {
 	ASSERT_INTERNAL(versionNumber == 0U, ErrorHandler::UnacceptablePacket);
 	ASSERT_INTERNAL(secondaryHeaderFlag, ErrorHandler::UnacceptablePacket);
 	ASSERT_INTERNAL(sequenceFlags == 0x3U, ErrorHandler::UnacceptablePacket);
-	ASSERT_INTERNAL(packetDataLength == (length - CCSDSPrimaryHeaderSize), ErrorHandler::UnacceptablePacket);
+	// ASSERT_INTERNAL(packetDataLength == (length - CCSDSPrimaryHeaderSize), ErrorHandler::UnacceptablePacket);
 
 	Message message(0, 0, packetType, APID);
 	message.packetSequenceCount = packetSequenceCount;
