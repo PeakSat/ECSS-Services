@@ -2,8 +2,13 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
+
+// #ifdef COMMS_SW
+// #include "../../Lib/etl-20.38.17/include/etl/array.h"
+// #else
 #include <etl/array.h>
+// #endif
+
 #include "Time.hpp"
 #include "UTCTimestamp.hpp"
 #include "macros.hpp"

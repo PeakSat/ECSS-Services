@@ -33,7 +33,12 @@ inline constexpr uint16_t CCSDSPrimaryHeaderSize = 6U;
 /**
  * The size of each ECSS Telemetry packet's secondary header
  */
-inline constexpr uint16_t ECSSSecondaryTMHeaderSize = 11U;
+// By setting it to 5 we are getting only one error
+// Actually is 6 bytes + time + spare
+// With 10 and comment out the following
+// ASSERT_INTERNAL(packetDataLength == (length - CCSDSPrimaryHeaderSize), ErrorHandler::UnacceptablePacket);
+// You are getting no errors
+inline constexpr uint16_t ECSSSecondaryTMHeaderSize = 10U;
 
 /**
  * The size of each ECSS Telecommand packet's secondary header

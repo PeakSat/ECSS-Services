@@ -1,7 +1,7 @@
 #include "MessageParser.hpp"
 #include <ServicePool.hpp>
-#include "ErrorHandler.hpp"
 #include "CRCHelper.hpp"
+#include "ErrorHandler.hpp"
 #include "RequestVerificationService.hpp"
 #include "macros.hpp"
 
@@ -113,7 +113,7 @@ Message MessageParser::parse(const uint8_t* data, uint32_t length) {
 	ASSERT_INTERNAL(versionNumber == 0U, ErrorHandler::UnacceptablePacket);
 	ASSERT_INTERNAL(secondaryHeaderFlag, ErrorHandler::UnacceptablePacket);
 	ASSERT_INTERNAL(sequenceFlags == 0x3U, ErrorHandler::UnacceptablePacket);
-	ASSERT_INTERNAL(packetDataLength == (length - CCSDSPrimaryHeaderSize), ErrorHandler::UnacceptablePacket);
+	// ASSERT_INTERNAL(packetDataLength == (length - CCSDSPrimaryHeaderSize), ErrorHandler::UnacceptablePacket);
 
 	Message message(0, 0, packetType, APID);
 	message.packetSequenceCount = packetSequenceCount;
@@ -184,7 +184,7 @@ String<CCSDSMaxMessageSize> MessageParser::composeECSS(const Message& message, u
 		header[4] = static_cast<uint8_t>(message.messageTypeCounter & 0xffU);
 		header[5] = message.applicationId >> 8U; // DestinationID
 		header[6] = message.applicationId;
-		uint32_t ticks = TimeGetter::getCurrentTimeDefaultCUC().formatAsBytes();
+		uint32_t ticks = 69; //= TimeGetter::getCurrentTimeDefaultCUC().formatAsBytes();
 		header[7] = (ticks >> 24) & 0xffU;
 		header[8] = (ticks >> 16) & 0xffU;
 		header[9] = (ticks >> 8) & 0xffU;

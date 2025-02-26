@@ -1,4 +1,10 @@
+
+#ifdef COMMS_SW
+#include "COMMS_ECSS_Configuration.hpp"
+#else
 #include "ECSS_Configuration.hpp"
+#endif
+
 #ifdef SERVICE_PARAMETER
 
 #include "ParameterService.hpp"

@@ -1,6 +1,12 @@
 #ifndef ECSS_SERVICES_HOUSEKEEPINGSERVICE_HPP
 #define ECSS_SERVICES_HOUSEKEEPINGSERVICE_HPP
 
+#ifdef COMMS_SW
+#include "COMMS_ECSS_Configuration.hpp"
+#else
+#include "ECSS_Configuration.hpp"
+#endif
+
 #include <optional>
 #include "ECSS_Definitions.hpp"
 #include "ErrorHandler.hpp"
@@ -63,7 +69,10 @@ public:
 
 	HousekeepingService() {
 		serviceType = ServiceType;
+
+		#ifdef SERVICE_HOUSEKEEPING
 		initializeHousekeepingStructures();
+		#endif
 	};
 
 	/**
