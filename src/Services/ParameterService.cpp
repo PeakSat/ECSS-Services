@@ -50,61 +50,61 @@ void ParameterService::appendParameterToMessage(Message& message, ParameterId pa
 	switch (type) {
 		case PARAMETER_TYPE::UINT8: {
 			uint8_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::INT8: {
 			int8_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::UINT16: {
 			uint16_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::INT16: {
 			int16_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::UINT32: {
 			uint32_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::INT32: {
 			int32_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::FLOAT: {
 			float temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::UINT64: {
 			uint64_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::INT64: {
 			int64_t temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
 		case PARAMETER_TYPE::DOUBLE: {
 			double temp = 0;
-			memManTask->getParameter(parameter, &temp);
+			MemoryManager::getParameter(parameter, &temp);
 			message.append(temp);
 			break;
 		}
@@ -120,52 +120,52 @@ void ParameterService::updateParameterFromMessage(Message& message, ParameterId 
 	switch (type) {
 		case PARAMETER_TYPE::UINT8: {
 			uint8_t temp = message.read<uint8_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT8: {
 			int8_t temp = message.read<int8_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT16: {
 			uint16_t temp = message.read<uint16_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT16: {
 			int16_t temp = message.read<int16_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT32: {
 			uint32_t temp = message.read<uint32_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT32: {
 			int32_t temp = message.read<int32_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::FLOAT: {
 			float temp = message.read<float>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT64: {
 			uint64_t temp = message.read<uint64_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT64: {
 			int64_t temp = message.read<int64_t>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::DOUBLE: {
 			double temp = message.read<double>();
-			memManTask->setParameter(parameter, static_cast<void*>(&temp));
+			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		default:

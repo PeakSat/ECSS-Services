@@ -5,7 +5,7 @@
 #include "ECSS_Definitions.hpp"
 #include "ErrorHandler.hpp"
 #include "Service.hpp"
-#include "MemoryManagementTask.hpp"
+#include "MemoryManager.hpp"
 #include "etl/map.h"
 
 /**

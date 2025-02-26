@@ -9,7 +9,7 @@
 #include "etl/map.h"
 #include "etl/optional.h"
 #include "ECSS_Definitions.hpp"
-#include "MemoryManagementTask.hpp"
+#include "MemoryManager.hpp"
 
 /**
  * Base class for Parameter Monitoring definitions. Contains the common variables of all check types.
@@ -176,7 +176,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValueAsUint64 = memManTask->getParameterAsUINT64(monitoredParameterId);
+		auto currentValueAsUint64 = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		uint64_t maskedValue = currentValueAsUint64 & getMask();
 
 		if (maskedValue == getExpectedValue()) {
@@ -248,7 +248,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = memManTask->getParameterAsUINT64(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		if (currentValue < getLowLimit()) {
 			checkingStatus = BelowLowLimit;
 		} else if (currentValue > getHighLimit()) {
@@ -373,7 +373,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = memManTask->getParameterAsUINT64(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		auto currentTimestamp = TimeGetter::getCurrentTimeDefaultCUC();
 
 		if (hasOldValue()) {
