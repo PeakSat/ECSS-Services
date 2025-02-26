@@ -74,8 +74,7 @@ void OnBoardMonitoringService::addParameterMonitoringDefinitions(Message& messag
 		uint16_t checkTypeValue = message.readEnum8();
 		auto currentCheckType = static_cast<PMON::CheckType>(checkTypeValue);
 
-		auto parameterToBeAdded = Services.parameterManagement.getParameter(currentMonitoredParameterId);
-		if (!parameterToBeAdded) {
+		if (!Services.parameterManagement.parameterExists(currentMonitoredParameterId)) {
 			ErrorHandler::reportError(message, ErrorHandler::ExecutionStartErrorType::GetNonExistingParameterMonitoringDefinition);
 			continue;
 		}

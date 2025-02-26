@@ -1,7 +1,6 @@
 #ifndef ECSS_SERVICES_PMON_HPP
 #define ECSS_SERVICES_PMON_HPP
 #include <cstdint>
-#include "Parameter.hpp"
 #include "Message.hpp"
 #include "Service.hpp"
 #include "TimeGetter.hpp"
@@ -10,6 +9,7 @@
 #include "etl/map.h"
 #include "etl/optional.h"
 #include "ECSS_Definitions.hpp"
+#include "MemoryManager.hpp"
 
 /**
  * Base class for Parameter Monitoring definitions. Contains the common variables of all check types.
@@ -34,7 +34,6 @@ public:
 		                             Delta = 3 };
 
 	ParameterId monitoredParameterId;
-	etl::reference_wrapper<ParameterBase> monitoredParameter;
 
 	/**
 	 * The number of consecutive checks with the same result that need to be conducted in order to set a new Parameter Monitoring Status.
@@ -177,7 +176,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValueAsUint64 = monitoredParameter.get().getValueAsUint64();
+		auto currentValueAsUint64 = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		uint64_t maskedValue = currentValueAsUint64 & getMask();
 
 		if (maskedValue == getExpectedValue()) {
@@ -249,7 +248,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = monitoredParameter.get().getValueAsDouble();
+		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		if (currentValue < getLowLimit()) {
 			checkingStatus = BelowLowLimit;
 		} else if (currentValue > getHighLimit()) {
@@ -374,7 +373,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = monitoredParameter.get().getValueAsDouble();
+		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
 		auto currentTimestamp = TimeGetter::getCurrentTimeDefaultCUC();
 
 		if (hasOldValue()) {
