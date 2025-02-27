@@ -8,6 +8,10 @@
 #include "Service.hpp"
 #include "etl/map.h"
 
+#include <PlatformParameters.hpp>
+typedef etl::map<uint16_t, std::reference_wrapper<ParameterBase>, NUMBER_OF_PARAMETERS> ParameterMap;
+inline ParameterMap parameters __attribute__((section(".ram_d3_data")));
+
 /**
  * Implementation of the ST[20] parameter management service,
  * as defined in ECSS-E-ST-70-41C
@@ -24,7 +28,7 @@
  */
 class ParameterService : public Service {
 private:
-	typedef etl::map<uint16_t, std::reference_wrapper<ParameterBase>, ECSSParameterCount> ParameterMap;
+
 
 	/**
 	 * Map storing the IDs and references to each parameter
@@ -32,7 +36,7 @@ private:
 	 * The key of the map is the ID of the parameter as specified in PUS.
 	 * The parameters here are under the responsibility of \ref ParameterService.
 	 */
-	ParameterMap parameters;
+
 
 	/**
 	 * Different subsystems should have their own implementations of this function,

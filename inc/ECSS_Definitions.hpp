@@ -23,7 +23,7 @@
 /**
  * The maximum size of a regular ECSS message, in bytes
  */
-inline constexpr uint16_t ECSSMaxMessageSize = 1024U;
+inline constexpr uint16_t ECSSMaxMessageSize = 1020U;
 
 /**
  * The size of each CCSDS Space packet primary header
