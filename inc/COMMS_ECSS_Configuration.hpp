@@ -20,7 +20,7 @@
 //#define SERVICE_DUMMY                     ///<  Compile ST[128] dummy service
 //#define SERVICE_EVENTACTION               ///<  Compile ST[19] event-action
 //#define SERVICE_EVENTREPORT               ///<  Compile ST[05] event reporting
-//#define SERVICE_FUNCTION                  ///<  Compile ST[08] function management
+#define SERVICE_FUNCTION                  ///<  Compile ST[08] function management
 //#define SERVICE_FILE_MANAGEMENT           ///<  Compile ST[23] file management service
 //#define SERVICE_HOUSEKEEPING              ///<  Compile ST[03] housekeeping
 //#define SERVICE_LARGEPACKET               ///<  Compile ST[13] large packet transfer
