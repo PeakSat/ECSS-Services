@@ -1,4 +1,5 @@
 #ifndef ECSS_SERVICES_ECSS_CONFIGURATION_HPP
+#define ECSS_SERVICES_ECSS_CONFIGURATION_HPP
 /**
  * @file
  * The configuration file for this ECSS Services platform.
