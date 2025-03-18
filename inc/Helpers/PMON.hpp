@@ -1,6 +1,8 @@
 #ifndef ECSS_SERVICES_PMON_HPP
 #define ECSS_SERVICES_PMON_HPP
 #include <cstdint>
+#include "ECSS_Definitions.hpp"
+#include "MemoryManager.hpp"
 #include "Message.hpp"
 #include "Service.hpp"
 #include "TimeGetter.hpp"
@@ -8,8 +10,6 @@
 #include "etl/functional.h"
 #include "etl/map.h"
 #include "etl/optional.h"
-#include "ECSS_Definitions.hpp"
-#include "MemoryManager.hpp"
 
 /**
  * Base class for Parameter Monitoring definitions. Contains the common variables of all check types.

@@ -4,7 +4,6 @@
 #include <etl/bitset.h>
 #include "Service.hpp"
 
-
 /**
  * Implementation of ST[05] event reporting service
  *
@@ -32,7 +31,6 @@ public:
         ReportListOfDisabledEvents = 7,
         DisabledListEventReport = 8,
     };
-
 
     // Variables that count the event reports per severity level
     uint16_t lowSeverityReportCount = 0;
@@ -64,7 +62,6 @@ public:
         stateOfEvents.set();
         serviceType = ServiceType;
     }
-
 
     /**
      * Type of the information event

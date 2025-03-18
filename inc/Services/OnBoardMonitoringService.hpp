@@ -2,8 +2,8 @@
 #define ECSS_SERVICES_ONBOARDMONITORINGSERVICE_HPP
 #include <cstdint>
 #include "ECSS_Definitions.hpp"
-#include "PMON.hpp"
 #include "Message.hpp"
+#include "PMON.hpp"
 #include "Service.hpp"
 #include "etl/array.h"
 #include "etl/functional.h"
