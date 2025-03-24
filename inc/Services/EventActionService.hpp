@@ -24,6 +24,8 @@ private:
 	 */
 	bool eventActionFunctionStatus = false;
 
+	void initializeEventActionMap();
+
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 19;
 
@@ -56,6 +58,7 @@ public:
 
 	EventActionService() : eventActionFunctionStatus(true) {
 		serviceType = ServiceType;
+		initializeEventActionMap();
 	}
 
 	/**

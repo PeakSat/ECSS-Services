@@ -19,11 +19,6 @@
 class OnBoardMonitoringService : public Service {
 private:
 	/**
-	 * Map storing the parameter monitoring definitions.
-	 */
-	etl::map<uint16_t, etl::reference_wrapper<PMON>, ECSSMaxMonitoringDefinitions> parameterMonitoringList;
-
-	/**
 	 * Maximum number of checks for each Limit Check.
 	 */
 	static constexpr uint8_t MaximumNumberOfChecksLimitCheck = 1;
@@ -65,6 +60,11 @@ private:
 	void initializeParameterMonitoringMap();
 
 public:
+	/**
+	 * Map storing the parameter monitoring definitions.
+	 */
+	etl::map<uint16_t, etl::reference_wrapper<PMON>, ECSSMaxMonitoringDefinitions> parameterMonitoringList;
+	
 	inline static constexpr ServiceTypeNum ServiceType = 12;
 	enum MessageType : uint8_t {
 		EnableParameterMonitoringDefinitions = 1,
