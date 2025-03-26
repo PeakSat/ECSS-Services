@@ -91,7 +91,10 @@ public:
         /**
          * When an execution of a notification/event fails to start
          */
-        FailedStartOfExecution = 5
+        FailedStartOfExecution = 5,
+
+        OBCMCUTempLowLimit = 6,
+
     };
 
     /**
