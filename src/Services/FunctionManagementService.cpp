@@ -1,53 +1,31 @@
 #include "ECSS_Configuration.hpp"
+#include "FunctionManagementWrappers.hpp"
 #ifdef SERVICE_FUNCTION
 
 #include "FunctionManagementService.hpp"
 
+/**
+ * The number(N) and size of the arguments cannot be checked at this point.
+ * Every function should do its own bound checks.
+ *
+ *            i= 0 1 2 3 4...             ...x
+ *  msg.data[i]: B B B B B B B B B B B B B B B
+ *             _/   / \                      |
+ *         __/ 2B  | 1B\        (x-3)B       |
+ *      / function | N |       Arguments     |
+ *     |    ID     |   |                     |
+ */
+
 void FunctionManagementService::call(Message& msg) {
-	msg.resetRead();
+	uint16_t functionID = (msg.data[0] << 8) | msg.data[1];
 
-	if (!msg.assertTC(ServiceType, MessageType::PerformFunction)) {
-		return;
-	}
-
-	etl::array<uint8_t, ECSSFunctionNameLength> funcName = {0};
-	etl::array<uint8_t, ECSSFunctionMaxArgLength> funcArgs = {0};
-
-	msg.readString(funcName.data(), ECSSFunctionNameLength);
-	msg.readString(funcArgs.data(), ECSSFunctionMaxArgLength);
-
-	if (msg.dataSize > (ECSSFunctionNameLength + ECSSFunctionMaxArgLength)) {
-		ErrorHandler::reportError(msg,
-		                          ErrorHandler::ExecutionStartErrorType::UnknownExecutionStartError);
-		// start of execution as requested by the standard
-		return;
-	}
-
-	// locate the appropriate function pointer
-	String<ECSSFunctionNameLength> const name(funcName.data());
-	FunctionMap::iterator const iter = funcPtrIndex.find(name); // NOLINT(cppcoreguidelines-init-variables)
-
-	if (iter == funcPtrIndex.end()) {
-		ErrorHandler::reportError(msg, ErrorHandler::ExecutionStartErrorType::UnknownExecutionStartError);
-		return;
-	}
-
-	auto selected = *iter->second;
-
-	// execute the function if there are no obvious flaws (defined in the standard, pg.158)
-	selected(funcArgs.data());
-}
-
-void FunctionManagementService::include(String<ECSSFunctionNameLength> funcName,
-                                        void (*ptr)(String<ECSSFunctionMaxArgLength>)) {
-	if (not funcPtrIndex.full()) { // CAUTION: etl::map won't check by itself if it's full
-		// before attempting to insert a key-value pair, causing segmentation faults. Check first!
-		funcName.append(ECSSFunctionNameLength - funcName.length(), 0);
-		funcPtrIndex.insert(std::make_pair(funcName, ptr));
-	} else {
-		ErrorHandler::reportInternalError(ErrorHandler::InternalErrorType::MapFull);
+	switch (functionID) {
+		case 69: // test function
+			testFunction(msg);
+		break;
 	}
 }
+
 
 void FunctionManagementService::execute(Message& message) {
 	switch (message.messageType) {
@@ -60,8 +38,5 @@ void FunctionManagementService::execute(Message& message) {
 	}
 }
 
-void FunctionManagementService::initializeFunctionMap() {
-	// Should be implemented? TBD
-}
 
 #endif
