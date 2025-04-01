@@ -7,9 +7,6 @@
 #include "Service.hpp"
 #include "ErrorHandler.hpp"
 
-typedef String<ECSSFunctionNameLength> functionName;
-typedef etl::map<functionName, void (*)(String<ECSSFunctionMaxArgLength>), ECSSFunctionMapSize> FunctionMap;
-
 /**
  * Implementation of the ST[08] function management service
  *
@@ -30,15 +27,6 @@ typedef etl::map<functionName, void (*)(String<ECSSFunctionMaxArgLength>), ECSSF
 class FunctionManagementService : public Service {
 private:
 
-	/**
-	 * Map of the function names to their respective pointers. Size controlled by FUNC_MAP_SIZE
-	 */
-	FunctionMap funcPtrIndex;
-
-	/**
-	 * Initializes the function map with the default functions
-	 */
-	void initializeFunctionMap();
 
 public:
 
@@ -54,7 +42,6 @@ public:
 	 */
 	FunctionManagementService() {
 		serviceType = ServiceType;
-		initializeFunctionMap();
 	}
 
 	/**
@@ -65,41 +52,7 @@ public:
 	 */
 	void call(Message& msg);
 
-	/**
-	 * Includes a new function in the pointer map. This enables it to be called by way of a valid
-	 * TC[8,1] message.
-	 *
-	 * Usage of the include() function:
-	 *
-	 * @code
-	 * void foo(String<MAX_ARG_LENGTH> b) {
-	 * 		std::cout << "SPAAAACE!" << std::endl;
-	 * 	}
-	 *
-	 * void bar(String<MAX_ARG_LENGTH> b) {
-	 * 		std::cout << "I HAZ A CUBESAT THAT SNAPS PIX!" << std::endl;
-	 * 	}
-	 *
-	 * void baz(String<MAX_ARG_LENGTH> b) {
-	 * 		std::cout << "QWERTYUIOP" << std::endl;
-	 * 	}
-	 *
-	 * 	FunctionManagementService::FunctionManagementService() {
-	 * 		include(String<FUNC_NAME_LENGTH>("foo"), &foo);
-	 * 		include(String<FUNC_NAME_LENGTH>("bar"), &bar);
-	 * 		include(String<FUNC_NAME_LENGTH>("baz"), &baz);
-	 * 	}
-	 * @endcode
-	 *
-	 * @param funcName the function's name. Max. length is FUNC_NAME_LENGTH bytes.
-	 * @param ptr pointer to a function of void return type and a MAX_ARG_LENGTH-lengthed byte
-	 * string as argument (which contains the actual arguments of the function)
-	 */
-	void include(String<ECSSFunctionNameLength> funcName, void (*ptr)(String<ECSSFunctionMaxArgLength>));
 
-	size_t getMapSize() {
-		return funcPtrIndex.size();
-	}
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
