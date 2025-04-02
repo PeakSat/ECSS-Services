@@ -52,8 +52,6 @@ public:
 	 */
 	void call(Message& msg);
 
-
-
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
 	 * is the ground station.
@@ -62,6 +60,8 @@ public:
 	 * @param message Contains the necessary parameters to call the suitable subservice
 	 */
 	void execute(Message& message);
+
+	void initMessages();
 };
 
 #endif // ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
