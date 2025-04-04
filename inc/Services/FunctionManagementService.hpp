@@ -6,7 +6,7 @@
 #include "Message.hpp"
 #include "Service.hpp"
 #include "ErrorHandler.hpp"
-
+#include "FunctionManagementWrappers.hpp"
 /**
  * Implementation of the ST[08] function management service
  *
@@ -50,7 +50,7 @@ public:
 	 * int, for testing purposes.
 	 * @param msg A TC[8,1] message
 	 */
-	void call(Message& msg);
+	static void call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
