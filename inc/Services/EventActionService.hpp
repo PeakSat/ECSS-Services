@@ -6,7 +6,7 @@
 #include "etl/String.hpp"
 #include "etl/multimap.h"
 
-#include <FunctionManagementWrappers.hpp>
+#include <OBC_Definitions.hpp>
 
 /**
  * Implementation of ST[19] event-action Service

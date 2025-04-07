@@ -1,12 +1,15 @@
 #ifndef ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
 #define ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
 
-#include "etl/map.h"
-#include "etl/String.hpp"
+#include "ErrorHandler.hpp"
+#include "FunctionManagementService.hpp"
 #include "Message.hpp"
 #include "Service.hpp"
-#include "ErrorHandler.hpp"
-#include "FunctionManagementWrappers.hpp"
+#include "etl/String.hpp"
+#include "etl/map.h"
+
+#include <OBC_Definitions.hpp>
+
 /**
  * Implementation of the ST[08] function management service
  *
@@ -48,9 +51,10 @@ public:
 	 * Calls the function described in the TC[8,1] message *msg*, passing the arguments contained
 	 * and, if non-existent, generates a failed start of execution notification. Returns an unneeded
 	 * int, for testing purposes.
-	 * @param message A TC[8,1] message
+	 * @param functionID
+	 * @param functionArgs
 	 */
-	static void call(Message& message);
+	static void call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
