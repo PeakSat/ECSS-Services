@@ -5,35 +5,35 @@
 #include <etl/String.hpp>
 #include "Message.hpp"
 
-void LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
+Message LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
                                                          PartSequenceNum partSequenceNumber,
-                                                         const String<ECSSMaxFixedOctetStringSize>& string) {
+                                                         const String<ECSSMaxFixedOctetStringSize>& string) const {
 	Message report = createTM(LargePacketTransferService::MessageType::FirstDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
 	report.append<PartSequenceNum>(partSequenceNumber);                // part sequence number
 	report.appendOctetString(string);                       // fixed octet-string
-	storeMessage(report);
+	return report;
 }
 
-void LargePacketTransferService::intermediateDownlinkPartReport(
+Message LargePacketTransferService::intermediateDownlinkPartReport(
     LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-    const String<ECSSMaxFixedOctetStringSize>& string) {
+    const String<ECSSMaxFixedOctetStringSize>& string) const {
 
 	Message report = createTM(LargePacketTransferService::MessageType::InternalDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
-	report.append<PartSequenceNum>(partSequenceNumber);                // part sequence number
-	report.appendOctetString(string);                       // fixed octet-string
-	storeMessage(report);
+	report.append<PartSequenceNum>(partSequenceNumber);							 // part sequence number
+	report.appendOctetString(string);											 // fixed octet-string
+	return report;
 }
 
-void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
+Message LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
                                                         PartSequenceNum partSequenceNumber,
-                                                        const String<ECSSMaxFixedOctetStringSize>& string) {
+                                                        const String<ECSSMaxFixedOctetStringSize>& string) const {
 	Message report = createTM(LargePacketTransferService::MessageType::LastDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
-	report.append<PartSequenceNum>(partSequenceNumber);                // part sequence number
-	report.appendOctetString(string);                       // fixed octet-string
-	storeMessage(report);
+	report.append<PartSequenceNum>(partSequenceNumber);							 // part sequence number
+	report.appendOctetString(string);											 // fixed octet-string
+	return report;
 }
 
 String<ECSSMaxFixedOctetStringSize>
@@ -51,7 +51,7 @@ LargePacketTransferService::lastUplinkPart(const String<ECSSMaxFixedOctetStringS
 	return string;
 }
 
-void LargePacketTransferService::split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) {
+void LargePacketTransferService::split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) const {
 	uint16_t const size = message.dataSize;
 	uint16_t positionCounter = 0;
 	uint16_t const parts = (size / ECSSMaxFixedOctetStringSize) + 1;

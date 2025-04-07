@@ -184,7 +184,7 @@ String<CCSDSMaxMessageSize> MessageParser::composeECSS(const Message& message, u
 		header[4] = static_cast<uint8_t>(message.messageTypeCounter & 0xffU);
 		header[5] = message.applicationId >> 8U; // DestinationID
 		header[6] = message.applicationId;
-		uint32_t ticks = TimeGetter::getCurrentTimeDefaultCUC().formatAsBytes();
+		uint32_t ticks = TimeKeepingTask::getUnixEpoch();
 		header[7] = (ticks >> 24) & 0xffU;
 		header[8] = (ticks >> 16) & 0xffU;
 		header[9] = (ticks >> 8) & 0xffU;
@@ -227,7 +227,7 @@ String<CCSDSMaxMessageSize> MessageParser::compose(const Message& message) {
 	// uint16_t packetDataLength = ecssMessage.size() - 1;
 	uint16_t packetDataLength = ecssMessage.size();
 
-	// Compile the header
+	// Create the CCSDS header
 	header[0] = packetId >> 8U;
 	header[1] = packetId & 0xffU;
 	header[2] = packetSequenceControl >> 8U;
@@ -240,13 +240,13 @@ String<CCSDSMaxMessageSize> MessageParser::compose(const Message& message) {
 	ccsdsMessage.append(ecssMessage);
 
 
-	// if constexpr (CRCHelper::EnableCRC) {
-	// 	const CRCSize crcField = CRCHelper::calculateCRC(reinterpret_cast<uint8_t*>(ccsdsMessage.data()), CCSDSPrimaryHeaderSize + ecssMessage.size());
-	// 	etl::array<uint8_t, CRCField> crcMessage = {static_cast<uint8_t>(crcField >> 8U), static_cast<uint8_t>
-	// 	                                            (crcField &  0xFF)};
-	// 	String<CCSDSMaxMessageSize> crcString(crcMessage.data(), 2);
-	// 	ccsdsMessage.append(crcString);
-	// }
+	if constexpr (CRCHelper::EnableCRC) {
+		const CRCSize crcField = CRCHelper::calculateCRC(reinterpret_cast<uint8_t*>(ccsdsMessage.data()), CCSDSPrimaryHeaderSize + ecssMessage.size());
+		etl::array<uint8_t, CRCField> crcMessage = {static_cast<uint8_t>(crcField >> 8U), static_cast<uint8_t>
+		                                            (crcField &  0xFF)};
+		String<CCSDSMaxMessageSize> crcString(crcMessage.data(), 2);
+		ccsdsMessage.append(crcString);
+	}
 
 	return ccsdsMessage;
 }
