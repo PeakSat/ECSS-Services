@@ -46,7 +46,7 @@ using PercentageFilled = uint16_t;
  * The time interval at which the parameters are collected, expressed as units of the minimum sampling interval as per 6.3.3.2.c.5 #NOTE-2.
  */
 using CollectionInterval = uint32_t;
-using ErrorCode = uint16_t;
+using ECSSErrorCode = uint16_t;
 /**
  * The types used for the three Check Types and their variables in OnBoardMonitoringService.
  */
