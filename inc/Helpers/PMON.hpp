@@ -278,7 +278,7 @@ public:
 
 private:
 	double previousValue;
-	etl::optional<Time::DefaultCUC> previousTimestamp;
+	etl::optional<UTCTimestamp> previousTimestamp;
 
 public:
 	explicit PMONDeltaCheck(ParameterId monitoredParameterId, PMONRepetitionNumber repetitionNumber,
@@ -328,7 +328,7 @@ public:
 	/**
 	 * This method updates the last value and timestamp of the PMONDeltaCheck object.
 	 */
-	void updatePreviousValueAndTimestamp(double newValue, const Time::DefaultCUC& newTimestamp) {
+	void updatePreviousValueAndTimestamp(double newValue, const UTCTimestamp& newTimestamp) {
 		previousValue = newValue;
 		previousTimestamp = newTimestamp;
 	}
@@ -339,7 +339,7 @@ public:
 	double getDeltaPerSecond(double currentValue) const {
 		if (previousTimestamp.has_value()) {
 			double delta = currentValue - previousValue;
-			auto duration = TimeGetter::getCurrentTimeDefaultCUC() - *previousTimestamp;
+			auto duration = TimeGetter::getCurrentTimeUTC() - *previousTimestamp;
 			double deltaSeconds = std::chrono::duration<double>(duration).count();
 
 			if (deltaSeconds == 0) {
@@ -374,7 +374,7 @@ public:
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
 		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
-		auto currentTimestamp = TimeGetter::getCurrentTimeDefaultCUC();
+		auto currentTimestamp = TimeGetter::getCurrentTimeUTC();
 
 		if (hasOldValue()) {
 			double deltaPerSecond = getDeltaPerSecond(currentValue);

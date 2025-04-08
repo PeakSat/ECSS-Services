@@ -1,8 +1,8 @@
 #ifndef ECSS_SERVICES_TIMEBASEDSCHEDULINGSERVICE_HPP
 #define ECSS_SERVICES_TIMEBASEDSCHEDULINGSERVICE_HPP
 
-#include "ErrorHandler.hpp"
 #include "CRCHelper.hpp"
+#include "ErrorHandler.hpp"
 #include "MessageParser.hpp"
 #include "Service.hpp"
 #include "etl/list.h"
@@ -62,8 +62,8 @@ private:
 	 */
 	struct RequestID {
 		ApplicationProcessId applicationID = 0; ///< Application process ID
-		SequenceCount sequenceCount = 0; ///< Packet sequence count
-		SourceId sourceID = 0;       ///< Packet source ID
+		SequenceCount sequenceCount = 0;        ///< Packet sequence count
+		SourceId sourceID = 0;                  ///< Packet source ID
 
 		bool operator!=(const RequestID& rightSide) const {
 			return (sequenceCount != rightSide.sequenceCount) or (applicationID != rightSide.applicationID) or
@@ -81,9 +81,9 @@ private:
 	 * @todo (#229) If groups are used, then the group ID has to be defined here
 	 */
 	struct ScheduledActivity {
-		Message request;                         ///< Hold the received command request
-		RequestID requestID;                     ///< Request ID, characteristic of the definition
-		Time::DefaultCUC requestReleaseTime{0}; ///< Keep the command release time
+		Message request;                   ///< Hold the received command request
+		RequestID requestID;               ///< Request ID, characteristic of the definition
+		UTCTimestamp requestReleaseTime{}; ///< Keep the command release time
 	};
 
 	/**
@@ -150,7 +150,7 @@ public:
 	 * This function executes the next activity and removes it from the list.
 	 * @return the requestReleaseTime of next activity to be executed after this time
 	 */
-	Time::DefaultCUC executeScheduledActivity(Time::DefaultCUC currentTime);
+	UTCTimestamp executeScheduledActivity(UTCTimestamp currentTime);
 
 	/**
 	 * @brief TC[11,1] enable the time-based schedule execution function

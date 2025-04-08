@@ -7,7 +7,7 @@ TimeBasedSchedulingService::TimeBasedSchedulingService() {
 	serviceType = TimeBasedSchedulingService::ServiceType;
 }
 
-Time::DefaultCUC TimeBasedSchedulingService::executeScheduledActivity(Time::DefaultCUC currentTime) {
+UTCTimestamp TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp currentTime) {
 	if (currentTime >= scheduledActivities.front().requestReleaseTime && !scheduledActivities.empty()) {
 		if (scheduledActivities.front().requestID.applicationID == ApplicationId) {
 			MessageParser::execute(scheduledActivities.front().request);
@@ -18,7 +18,7 @@ Time::DefaultCUC TimeBasedSchedulingService::executeScheduledActivity(Time::Defa
 	if (!scheduledActivities.empty()) {
 		return scheduledActivities.front().requestReleaseTime;
 	}
-	return Time::DefaultCUC::max();
+	return {9999, 12, 31, 23, 59, 59};
 }
 
 void TimeBasedSchedulingService::enableScheduleExecution(const Message& request) {
@@ -53,9 +53,9 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 	uint16_t iterationCount = request.readUint16();
 	while (iterationCount-- != 0) {
 		// todo (#229): Get the group ID first, if groups are used
-		const Time::DefaultCUC currentTime(TimeGetter::getCurrentTimeDefaultCUC());
+		const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 
-		const Time::DefaultCUC releaseTime(request.readDefaultCUCTimeStamp());
+		const UTCTimestamp releaseTime(request.readUTCTimestamp());
 		if ((scheduledActivities.available() == 0) || (releaseTime < (currentTime + ECSSTimeMarginForActivation))) {
 			ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 			request.skipBytes(ECSSTCRequestStringSize);
@@ -84,7 +84,7 @@ void TimeBasedSchedulingService::timeShiftAllActivities(Message& request) {
 		return;
 	}
 
-	const Time::DefaultCUC current_time(TimeGetter::getCurrentTimeDefaultCUC());
+	const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 
 	const auto releaseTimes =
 	    etl::minmax_element(scheduledActivities.begin(), scheduledActivities.end(),
@@ -93,7 +93,7 @@ void TimeBasedSchedulingService::timeShiftAllActivities(Message& request) {
 	                        });
 	// todo (#267): Define what the time format is going to be
 	const Time::RelativeTime relativeOffset = request.readRelativeTime();
-	if ((releaseTimes.first->requestReleaseTime + std::chrono::seconds(relativeOffset)) < (current_time + ECSSTimeMarginForActivation)) {
+	if ((releaseTimes.first->requestReleaseTime + std::chrono::seconds(relativeOffset)) < (currentTime + ECSSTimeMarginForActivation)) {
 		ErrorHandler::reportError(request, ErrorHandler::SubServiceExecutionStartError);
 		return;
 	}
@@ -107,7 +107,7 @@ void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
 		return;
 	}
 
-	const Time::DefaultCUC current_time(TimeGetter::getCurrentTimeDefaultCUC());
+	const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 
 	auto relativeOffset = std::chrono::seconds(request.readRelativeTime());
 	uint16_t iterationCount = request.readUint16();
@@ -124,7 +124,7 @@ void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
 
 		if (requestIDMatch != scheduledActivities.end()) {
 			if ((requestIDMatch->requestReleaseTime + relativeOffset) <
-			    (current_time + ECSSTimeMarginForActivation)) {
+			    (currentTime + ECSSTimeMarginForActivation)) {
 				ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 			} else {
 				requestIDMatch->requestReleaseTime += relativeOffset;
@@ -175,7 +175,7 @@ void TimeBasedSchedulingService::timeBasedScheduleDetailReport(const etl::list<S
 	report.appendUint16(static_cast<uint16_t>(listOfActivities.size()));
 
 	for (const auto& activity: listOfActivities) {
-		report.appendDefaultCUCTimeStamp(activity.requestReleaseTime); // todo (#267): Replace with the time parser
+		report.appendUTCTimestamp(activity.requestReleaseTime); // todo (#267): Replace with the time parser
 		report.appendString(MessageParser::composeECSS(activity.request));
 	}
 	storeMessage(report);
@@ -249,7 +249,7 @@ void TimeBasedSchedulingService::timeBasedScheduleSummaryReport(const etl::list<
 	report.appendUint16(static_cast<uint16_t>(listOfActivities.size()));
 	for (const auto& match: listOfActivities) {
 		// todo (#229): append sub-schedule and group ID if they are defined
-		report.appendDefaultCUCTimeStamp(match.requestReleaseTime);
+		report.appendUTCTimestamp(match.requestReleaseTime);
 		report.append<SourceId>(match.requestID.sourceID);
 		report.append<ApplicationProcessId>(match.requestID.applicationID);
 		report.append<SequenceCount>(match.requestID.sequenceCount);

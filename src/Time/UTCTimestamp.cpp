@@ -1,6 +1,6 @@
-#include "Time.hpp"
 #include "UTCTimestamp.hpp"
 #include <iomanip>
+#include "Time.hpp"
 
 UTCTimestamp::UTCTimestamp() : year(UNIXEpochYear), month(1), second(0), minute(0), hour(0), day(1) {}
 
@@ -163,7 +163,7 @@ void UTCTimestamp::repair() {
 }
 
 template <>
-void convertValueToString(String<LOGGER_MAX_MESSAGE_SIZE>& message, UTCTimestamp& value){
+void convertValueToString(String<LOGGER_MAX_MESSAGE_SIZE>& message, UTCTimestamp& value) {
 	etl::to_string(value.hour, message, true);
 	message += "-";
 	etl::to_string(value.minute, message, true);
@@ -175,4 +175,36 @@ void convertValueToString(String<LOGGER_MAX_MESSAGE_SIZE>& message, UTCTimestamp
 	etl::to_string(value.month, message, true);
 	message += "/";
 	etl::to_string(value.year, message, true);
+}
+
+uint64_t UTCTimestamp::toEpochSeconds() const {
+	using namespace Time;
+	uint64_t epochSeconds = 0ULL;
+
+	// Calculate seconds from epoch to the start of the year
+	for (uint16_t y = UNIXEpochYear; y < year; ++y) {
+		epochSeconds += (isLeapYear(y) ? 366ULL : 365ULL) * static_cast<uint64_t>(SecondsPerDay);
+	}
+
+	// Add days for months in current year
+	for (uint8_t m = 1U; m < month; ++m) {
+		uint8_t daysInMonth = DaysOfMonth[m - 1U];
+
+		// Account for leap year in February
+		if (m == 2U && isLeapYear(year)) {
+			daysInMonth += 1U;
+		}
+
+		epochSeconds += static_cast<uint64_t>(daysInMonth) * static_cast<uint64_t>(SecondsPerDay);
+	}
+
+	// Add days in current month (subtract 1 since day is 1-based)
+	epochSeconds += static_cast<uint64_t>(day - 1U) * static_cast<uint64_t>(SecondsPerDay);
+
+	// Add time components
+	epochSeconds += static_cast<uint64_t>(hour) * static_cast<uint64_t>(SecondsPerHour);
+	epochSeconds += static_cast<uint64_t>(minute) * static_cast<uint64_t>(SecondsPerMinute);
+	epochSeconds += static_cast<uint64_t>(second);
+
+	return epochSeconds;
 }

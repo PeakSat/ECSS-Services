@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <etl/String.hpp>
-#include "Time.hpp"
 #include "Logger.hpp"
+#include "Time.hpp"
 
 /**
  * A class that represents a UTC time and date according to ISO 8601
@@ -43,13 +43,20 @@ public:
 	UTCTimestamp(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 
 	/**
+	 * Converts a UTCTimestamp to seconds since Unix epoch
+	 *
+	 * @return Number of seconds since Unix epoch (January 1, 1970)
+	 */
+	[[nodiscard]] uint64_t toEpochSeconds() const;
+
+	/**
 	 * Add a duration to the timestamp
 	 *
 	 * @note Overflow checks are not performed.
 	 * @tparam Duration A duration of type std::chrono::duration. You can use the default values offered by C++, or anything
 	 * used by the TimeStamp class. Negative duration values are not supported.
 	 */
-	template<class Duration, typename = std::enable_if_t<Time::is_duration_v<Duration>>>
+	template <class Duration, typename = std::enable_if_t<Time::is_duration_v<Duration>>>
 	void operator+=(const Duration& in) {
 		using namespace std::chrono;
 		using namespace Time;
@@ -59,16 +66,16 @@ public:
 			return;
 		}
 
-	    uint64_t seconds = duration_cast<duration<uint64_t>>(in).count();
+		uint64_t seconds = duration_cast<duration<uint64_t>>(in).count();
 
-		while (seconds >= (isLeapYear(year) ? 366L : 365L) * SecondsPerDay) {  // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-			seconds -= (isLeapYear(year) ? 366L : 365L) * SecondsPerDay;  // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+		while (seconds >= (isLeapYear(year) ? 366L : 365L) * SecondsPerDay) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+			seconds -= (isLeapYear(year) ? 366L : 365L) * SecondsPerDay;      // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 			year++;
 		}
 
 		while (seconds >= (daysOfMonth() * uint64_t{SecondsPerDay})) {
 			seconds -= daysOfMonth() * uint64_t{SecondsPerDay};
-		    month++;
+			month++;
 
 			if (month > MonthsPerYear) {
 				// Month overflow needs to be taken care here, so that daysOfMonth() knows
@@ -90,6 +97,55 @@ public:
 		second += seconds;
 
 		repair();
+	}
+
+	/**
+ 	 * Add a duration to a UTC timestamp, returning a new timestamp
+ 	 *
+ 	 * @param duration Duration to add to this timestamp
+ 	 * @return A new UTCTimestamp representing this time plus the specified duration
+ 	 */
+	template <class Duration, typename = std::enable_if_t<Time::is_duration_v<Duration>>>
+	UTCTimestamp operator+(const Duration& duration) const {
+		// Create a copy of this timestamp using copy constructor
+		UTCTimestamp result = UTCTimestamp(
+		    this->year,
+		    this->month,
+		    this->day,
+		    this->hour,
+		    this->minute,
+		    this->second);
+
+		// Use the existing += operator to modify the copy
+		result += duration;
+
+		// Return the modified copy
+		return result;
+	}
+
+	/**
+ 	 * Subtract two UTC timestamps to get the duration between them
+ 	 *
+ 	 * @param other The timestamp to subtract from this one
+ 	 * @return Duration between the two timestamps
+ 	 */
+	template <class Duration = std::chrono::seconds,
+	          typename = std::enable_if_t<Time::is_duration_v<Duration>>>
+	Duration operator-(const UTCTimestamp& other) const {
+		// Get seconds since epoch for both timestamps
+		const uint64_t thisSeconds = this->toEpochSeconds();
+		const uint64_t otherSeconds = other.toEpochSeconds();
+
+		// Calculate difference in seconds (with protection against underflow)
+		int64_t diffSeconds = 0LL;
+		if (thisSeconds >= otherSeconds) {
+			diffSeconds = static_cast<int64_t>(thisSeconds - otherSeconds);
+		} else {
+			diffSeconds = -static_cast<int64_t>(otherSeconds - thisSeconds);
+		}
+
+		// Return as the requested duration type
+		return std::chrono::duration_cast<Duration>(std::chrono::seconds(diffSeconds));
 	}
 
 	/**
