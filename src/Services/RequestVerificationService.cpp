@@ -77,7 +77,7 @@ void RequestVerificationService::failProgressExecutionVerification(const Message
 	Message report = createTM(RequestVerificationService::MessageType::FailedProgressOfExecution);
 
 	assembleReportMessage(request, report);
-	report.append<StepId>(stepID);      // step ID
+	report.append<StepId>(stepID);           // step ID
 	report.append<ECSSErrorCode>(errorCode); // error code
 
 	storeMessage(report);
@@ -105,16 +105,27 @@ void RequestVerificationService::failCompletionExecutionVerification(
 	storeMessage(report);
 }
 
-void RequestVerificationService::failRoutingVerification(const Message& request,
-                                                         ErrorHandler::RoutingErrorType errorCode) {
-	// TM[1,10] failed routing verification report
+void RequestVerificationService::failCompletionExecutionVerification(const Message& request, const SpacecraftErrorCode errorCode) {
+		// TM[1,8] failed completion of execution verification report
 
-	Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
+		Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
 
-	assembleReportMessage(request, report);
-	report.append<ECSSErrorCode>(errorCode); // error code
+		assembleReportMessage(request, report);
+		report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
-}
+		storeMessage(report);
+	}
+
+	void RequestVerificationService::failRoutingVerification(const Message& request,
+	                                                         ErrorHandler::RoutingErrorType errorCode) {
+		// TM[1,10] failed routing verification report
+
+		Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
+
+		assembleReportMessage(request, report);
+		report.append<ECSSErrorCode>(errorCode); // error code
+
+		storeMessage(report);
+	}
 
 #endif

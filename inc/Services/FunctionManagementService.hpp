@@ -1,6 +1,9 @@
 #ifndef ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
 #define ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
 
+#include <ErrorDefinitions.hpp>
+
+
 #include "ErrorHandler.hpp"
 #include "FunctionManagementService.hpp"
 #include "Message.hpp"
@@ -54,7 +57,7 @@ public:
 	 * @param functionID
 	 * @param functionArgs
 	 */
-	static void call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
+	static SpacecraftErrorCode call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
