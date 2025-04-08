@@ -2,12 +2,10 @@
 #define ECSS_SERVICES_FUNCTIONMANAGEMENTSERVICE_HPP
 
 #include "ErrorHandler.hpp"
-#include "FunctionManagementService.hpp"
 #include "Message.hpp"
 #include "Service.hpp"
 #include "etl/String.hpp"
 #include "etl/map.h"
-
 #include <OBC_Definitions.hpp>
 
 /**
