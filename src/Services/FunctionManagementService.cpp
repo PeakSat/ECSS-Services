@@ -2,6 +2,7 @@
 
 
 #include "ECSS_Configuration.hpp"
+#include "FunctionManagementWrappers.hpp"
 #ifdef SERVICE_FUNCTION
 #include "FunctionManagementService.hpp"
 

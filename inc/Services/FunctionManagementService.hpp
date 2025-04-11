@@ -11,6 +11,7 @@
 #include "etl/map.h"
 #include <OBC_Definitions.hpp>
 
+
 /**
  * Implementation of the ST[08] function management service
  *
@@ -55,7 +56,9 @@ public:
 	 * @param functionID
 	 * @param functionArgs
 	 */
+
 	static SpacecraftErrorCode call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
+
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
