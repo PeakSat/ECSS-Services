@@ -262,9 +262,10 @@ bool HousekeepingService::existsInVector(const etl::vector<uint16_t, ECSSMaxSimp
 	return std::find(std::begin(ids), std::end(ids), parameterId) != std::end(ids);
 }
 
-Time::DefaultCUC
-HousekeepingService::reportPendingStructures(Time::DefaultCUC currentTime, Time::DefaultCUC previousTime, Time::DefaultCUC expectedDelay) {
-	Time::DefaultCUC nextCollection((std::numeric_limits<uint32_t>::max()) * Time::DefaultCUC::Ratio::num / Time::DefaultCUC::Ratio ::den); // NOLINT(misc-const-correctness)
+UTCTimestamp
+HousekeepingService::
+    reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay) {
+	UTCTimestamp nextCollection{9999, 12, 31, 23, 59, 59}; // Max timestamp
 
 	for (const auto& housekeepingStructure: housekeepingStructures) {
 		if (!housekeepingStructure.second.periodicGenerationActionStatus) {
@@ -272,19 +273,21 @@ HousekeepingService::reportPendingStructures(Time::DefaultCUC currentTime, Time:
 		}
 		if (housekeepingStructure.second.collectionInterval == 0) {
 			housekeepingParametersReport(housekeepingStructure.second.structureId);
-			nextCollection = Time::DefaultCUC(0);
+			nextCollection = currentTime;;
 			continue;
 		}
-		if (currentTime.asTAIseconds() != 0 and (currentTime.asTAIseconds() % housekeepingStructure.second.collectionInterval ==
-		                                             0 or
-		                                         (previousTime.asTAIseconds() + expectedDelay.asTAIseconds()) % housekeepingStructure.second
-		                                                                                                            .collectionInterval ==
-		                                             0)) {
+		const uint64_t currentSeconds = currentTime.toEpochSeconds();
+		const uint64_t previousSeconds = previousTime.toEpochSeconds();
+		const uint64_t delaySeconds = expectedDelay.toEpochSeconds();
+		const uint64_t interval = housekeepingStructure.second.collectionInterval;
+
+		if (currentSeconds != 0 && (currentSeconds % interval == 0 ||
+		                            (previousSeconds + delaySeconds) % interval == 0)) {
 			housekeepingParametersReport(housekeepingStructure.second.structureId);
 		}
-		const Time::DefaultCUC structureTimeToCollection(housekeepingStructure.second
-		                                                     .collectionInterval -
-		                                                 currentTime.asTAIseconds() % housekeepingStructure.second.collectionInterval);
+
+		uint64_t secondsUntilNextCollection = interval - (currentSeconds % interval);
+		const UTCTimestamp structureTimeToCollection = currentTime + std::chrono::seconds(secondsUntilNextCollection);
 		if (nextCollection > structureTimeToCollection) {
 			nextCollection = structureTimeToCollection;
 		}

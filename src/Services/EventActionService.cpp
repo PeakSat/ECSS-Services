@@ -1,3 +1,6 @@
+#include <FunctionManagementService.hpp>
+
+
 #include "ECSS_Configuration.hpp"
 #ifdef SERVICE_EVENTACTION
 
@@ -5,9 +8,8 @@
 #include "MessageParser.hpp"
 #include "EventActionService.hpp"
 
-EventActionService::EventActionDefinition::EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID, Message& message)
-    : applicationID(applicationID), eventDefinitionID(eventDefinitionID), request(message.data.begin() + message.readPosition) {
-	message.readPosition += ECSSTCRequestStringSize;
+EventActionService::EventActionDefinition::EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID,EventActionId actionID, const etl::array<uint8_t, ECSSFunctionMaxArgLength>& actionArgs)
+    : applicationID(applicationID), eventDefinitionID(eventDefinitionID),actionID(actionID), actionArgs(actionArgs) {
 }
 
 void EventActionService::addEventActionDefinitions(Message& message) {
@@ -18,7 +20,19 @@ void EventActionService::addEventActionDefinitions(Message& message) {
 	while (numberOfEventActionDefinitions-- != 0) {
 		const ApplicationProcessId applicationID = message.read<ApplicationProcessId>();
 		EventDefinitionId eventDefinitionID = message.read<EventDefinitionId>();
+		const EventActionId actionID = message.read<EventActionId>();
 		bool canBeAdded = true; // NOLINT(misc-const-correctness)
+		// Read the length first
+		const uint8_t argsLength = message.readUint8();
+
+		// Validate length doesn't exceed buffer size
+		if (argsLength > ECSSFunctionMaxArgLength) {
+			// Handle error case
+			ErrorHandler::reportInternalError(ErrorHandler::MessageTooLarge);
+			return;
+		}
+		etl::array<uint8_t, ECSSFunctionMaxArgLength> actionArgs = {};
+		message.readString(actionArgs.data(), argsLength);
 
 		auto it = std::find_if(eventActionDefinitionMap.begin(), eventActionDefinitionMap.end(), [&](const auto& element) {
 			if (element.first == eventDefinitionID) {
@@ -37,7 +51,7 @@ void EventActionService::addEventActionDefinitions(Message& message) {
 				ErrorHandler::reportError(message, ErrorHandler::EventActionDefinitionsMapIsFull);
 				continue;
 			}
-			const EventActionDefinition temporaryEventActionDefinition(applicationID, eventDefinitionID, message);
+			const EventActionDefinition temporaryEventActionDefinition(applicationID, eventDefinitionID, actionID, actionArgs);
 			eventActionDefinitionMap.insert(std::make_pair(eventDefinitionID, temporaryEventActionDefinition));
 		}
 	}
@@ -188,8 +202,7 @@ void EventActionService::executeAction(EventDefinitionId eventDefinitionID) { //
 		auto range = eventActionDefinitionMap.equal_range(eventDefinitionID);
 		for (auto& element = range.first; element != range.second; ++element) {
 			if (element->second.enabled) {
-				Message message = MessageParser::parseECSSTC(element->second.request);
-				MessageParser::execute(message);
+				FunctionManagementService::call(element->second.actionID, element->second.actionArgs);
 			}
 		}
 	}

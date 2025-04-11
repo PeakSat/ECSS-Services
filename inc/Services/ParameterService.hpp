@@ -50,7 +50,7 @@ public:
 	 * @param parameterId the given ID
 	 * @return True if there is a reference to a parameter with the given ID, False otherwise
 	 */
-	bool parameterExists(ParameterId parameterId) const {
+	static bool parameterExists(ParameterId parameterId) {
 		// TODO Add parameter Upper lower limit check
 		return true;
 	}

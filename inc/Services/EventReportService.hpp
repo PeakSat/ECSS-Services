@@ -91,7 +91,17 @@ public:
         /**
          * When an execution of a notification/event fails to start
          */
-        FailedStartOfExecution = 5
+        FailedStartOfExecution = 5,
+
+        OBCMCUTempLowLimit = 6,
+
+        EPS_BatteryVoltageLowLimit = 7,
+        EPS_BatteryPackTempLowLimit = 8,
+        EPS_BatteryPackTempHighLimit = 9,
+        EPS_BoardTempLowLimit = 10,
+        EPS_BoardTempHighLimit = 11,
+
+
     };
 
     /**
