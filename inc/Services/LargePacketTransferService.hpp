@@ -38,8 +38,8 @@ public:
 	 * @param partSequenceNumber The identifier of the part of the large packet
 	 * @param string The data contained in this part of the large packet
 	 */
-	void firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                             const String<ECSSMaxFixedOctetStringSize>& string);
+	Message firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
+	                             const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	/**
 	 * TM[13,2] Function that handles the n-2 parts of tbe n-part download report
@@ -47,8 +47,8 @@ public:
 	 * @param partSequenceNumber The identifier of the part of the large packet
 	 * @param string The data contained in this part of the large packet
 	 */
-	void intermediateDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                                    const String<ECSSMaxFixedOctetStringSize>& string);
+	Message intermediateDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
+	                                    const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	/**
 	 * TM[13,3] Function that handles the last part of the download report
@@ -56,8 +56,8 @@ public:
 	 * @param partSequenceNumber The identifier of the part of the large packet
 	 * @param string The data contained in this part of the large packet
 	 */
-	void lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                            const String<ECSSMaxFixedOctetStringSize>& string);
+	Message lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
+	                            const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	// The three uplink functions should handle a TC request to "upload" data. Since there is not
 	// a composeECSS function ready, I just return the given string.
@@ -86,7 +86,7 @@ public:
 	 * @param message that is exceeds the standards and has to be split down
 	 * @param largeMessageTransactionIdentifier that is a value we assign to this splitting of the large message
 	 */
-	void split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier);
+	void split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) const;
 };
 
 #endif // ECSS_SERVICES_LARGEPACKETTRANSFERSERVICE_HPP
