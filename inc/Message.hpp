@@ -171,6 +171,19 @@ public:
 	}
 
 	/**
+ 	 * Appends a UTCTimestamp to the message as a uint32_t seconds-since-epoch value
+ 	 *
+ 	 * @param timestamp The UTCTimestamp to append
+ 	 */
+	void appendUTCTimestamp(const UTCTimestamp& timestamp) {
+		// Convert UTCTimestamp to seconds since epoch
+		const auto epochSeconds = static_cast<uint32_t>(timestamp.toEpochSeconds());
+
+		// Append as a 32-bit value
+		appendUint32(epochSeconds);
+	}
+
+	/**
 	 * Appends a number of bytes to the message
 	 *
 	 * Note that this doesn't append the number of bytes that the string contains. For this, you
@@ -593,6 +606,29 @@ public:
 		return Time::DefaultCUC(duration);
 	}
 
+	UTCTimestamp readUTCTimestamp() {
+		const auto time = readUint32();
+		// Convert epoch seconds to time_t for standard time functions
+		const auto timeValue = static_cast<time_t>(time);
+
+		// Use gmtime to convert to calendar time
+		const struct tm* timeInfo = gmtime(&timeValue);
+
+		if (timeInfo == nullptr) {
+			// Handle error case - return a default timestamp
+			return UTCTimestamp{};
+		}
+
+		// Construct and return a UTCTimestamp with the calculated values
+		return UTCTimestamp{
+		    static_cast<uint16_t>(timeInfo->tm_year + 1900), // gmtime returns years since 1900
+		    static_cast<uint8_t>(timeInfo->tm_mon + 1),      // gmtime returns months 0-11
+		    static_cast<uint8_t>(timeInfo->tm_mday),         // day of month (1-31)
+		    static_cast<uint8_t>(timeInfo->tm_hour),         // hours (0-23)
+		    static_cast<uint8_t>(timeInfo->tm_min),          // minutes (0-59)
+		    static_cast<uint8_t>(timeInfo->tm_sec)           // seconds (0-59)
+		};
+	}
 	/**
 	 * Fetches a N-byte string from the current position in the message
 	 *

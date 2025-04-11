@@ -1,10 +1,12 @@
 #ifndef ECSS_SERVICES_EVENTACTIONSERVICE_HPP
 #define ECSS_SERVICES_EVENTACTIONSERVICE_HPP
 
-#include "Service.hpp"
 #include "EventReportService.hpp"
+#include "Service.hpp"
 #include "etl/String.hpp"
 #include "etl/multimap.h"
+
+#include <OBC_Definitions.hpp>
 
 /**
  * Implementation of ST[19] event-action Service
@@ -23,6 +25,8 @@ private:
 	 * Event-action function status
 	 */
 	bool eventActionFunctionStatus = false;
+
+	void initializeEventActionMap();
 
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 19;
@@ -43,10 +47,11 @@ public:
 		ApplicationProcessId applicationID = 0;
 		inline static constexpr ApplicationProcessId MaxDefinitionID = 65535;
 		EventDefinitionId eventDefinitionID = MaxDefinitionID;
-		String<ECSSTCRequestStringSize> request = "";
+		EventActionId actionID = static_cast<FunctionManagerId_t>(FunctionManagerId::Undefined);
+		etl::array<uint8_t, ECSSFunctionMaxArgLength> actionArgs{};
 		bool enabled = false;
 
-		EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID, Message& message);
+		EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID,  EventActionId actionID, const etl::array<uint8_t, ECSSFunctionMaxArgLength>& actionArgs);
 	};
 
 	friend EventReportService;
@@ -56,6 +61,7 @@ public:
 
 	EventActionService() : eventActionFunctionStatus(true) {
 		serviceType = ServiceType;
+		initializeEventActionMap();
 	}
 
 	/**

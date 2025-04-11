@@ -1,67 +1,34 @@
-#include "ECSS_Configuration.hpp"
-#ifdef SERVICE_FUNCTION
+#include <ServicePool.hpp>
 
+
+#include "ECSS_Configuration.hpp"
+#include "FunctionManagementWrappers.hpp"
+#ifdef SERVICE_FUNCTION
 #include "FunctionManagementService.hpp"
 
-void FunctionManagementService::call(Message& msg) {
-	msg.resetRead();
-
-	if (!msg.assertTC(ServiceType, MessageType::PerformFunction)) {
-		return;
-	}
-
-	etl::array<uint8_t, ECSSFunctionNameLength> funcName = {0};
-	etl::array<uint8_t, ECSSFunctionMaxArgLength> funcArgs = {0};
-
-	msg.readString(funcName.data(), ECSSFunctionNameLength);
-	msg.readString(funcArgs.data(), ECSSFunctionMaxArgLength);
-
-	if (msg.dataSize > (ECSSFunctionNameLength + ECSSFunctionMaxArgLength)) {
-		ErrorHandler::reportError(msg,
-		                          ErrorHandler::ExecutionStartErrorType::UnknownExecutionStartError);
-		// start of execution as requested by the standard
-		return;
-	}
-
-	// locate the appropriate function pointer
-	String<ECSSFunctionNameLength> const name(funcName.data());
-	FunctionMap::iterator const iter = funcPtrIndex.find(name); // NOLINT(cppcoreguidelines-init-variables)
-
-	if (iter == funcPtrIndex.end()) {
-		ErrorHandler::reportError(msg, ErrorHandler::ExecutionStartErrorType::UnknownExecutionStartError);
-		return;
-	}
-
-	auto selected = *iter->second;
-
-	// execute the function if there are no obvious flaws (defined in the standard, pg.158)
-	selected(funcArgs.data());
-}
-
-void FunctionManagementService::include(String<ECSSFunctionNameLength> funcName,
-                                        void (*ptr)(String<ECSSFunctionMaxArgLength>)) {
-	if (not funcPtrIndex.full()) { // CAUTION: etl::map won't check by itself if it's full
-		// before attempting to insert a key-value pair, causing segmentation faults. Check first!
-		funcName.append(ECSSFunctionNameLength - funcName.length(), 0);
-		funcPtrIndex.insert(std::make_pair(funcName, ptr));
-	} else {
-		ErrorHandler::reportInternalError(ErrorHandler::InternalErrorType::MapFull);
-	}
-}
-
 void FunctionManagementService::execute(Message& message) {
-	switch (message.messageType) {
-		case PerformFunction:
-			call(message); // TC[8,1]
-			break;
-		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
-			break;
+	if (!message.assertTC(ServiceType, MessageType::PerformFunction)) {
+		return;
+	}
+
+	const uint16_t functionIDraw = (message.data[0] << 8) | message.data[1];
+	etl::array<uint8_t, ECSSFunctionMaxArgLength> functionArgs{};
+
+	if (message.dataSize - 2 > ECSSFunctionMaxArgLength) {
+		Services.requestVerification.failAcceptanceVerification(message, ErrorHandler::AcceptanceErrorType::UnacceptableMessage);
+		return;
+	}
+	etl::copy(message.data.begin() + 2, message.data.begin() + message.dataSize, functionArgs.begin());
+	SpacecraftErrorCode status = GENERIC_ERROR_TODO;
+
+	status = call(functionIDraw, functionArgs); // TC[8,1]
+
+	if (status != GENERIC_ERROR_NONE) {
+		Services.requestVerification.failCompletionExecutionVerification(message, static_cast<SpacecraftErrorCode>(status));
+	} else {
+		Services.requestVerification.successCompletionExecutionVerification(message);
 	}
 }
 
-void FunctionManagementService::initializeFunctionMap() {
-	// Should be implemented? TBD
-}
 
 #endif

@@ -30,7 +30,7 @@ void RequestVerificationService::failAcceptanceVerification(const Message& reque
 	Message report = createTM(RequestVerificationService::MessageType::FailedAcceptanceReport);
 
 	assembleReportMessage(request, report);
-	report.append<ErrorCode>(errorCode); // error code
+	report.append<ECSSErrorCode>(errorCode); // error code
 
 	storeMessage(report);
 }
@@ -53,7 +53,7 @@ void RequestVerificationService::failStartExecutionVerification(const Message& r
 
 	assembleReportMessage(request, report);
 
-	report.append<ErrorCode>(errorCode); // error code
+	report.append<ECSSErrorCode>(errorCode); // error code
 
 	storeMessage(report);
 }
@@ -77,8 +77,8 @@ void RequestVerificationService::failProgressExecutionVerification(const Message
 	Message report = createTM(RequestVerificationService::MessageType::FailedProgressOfExecution);
 
 	assembleReportMessage(request, report);
-	report.append<StepId>(stepID);      // step ID
-	report.append<ErrorCode>(errorCode); // error code
+	report.append<StepId>(stepID);           // step ID
+	report.append<ECSSErrorCode>(errorCode); // error code
 
 	storeMessage(report);
 }
@@ -100,21 +100,32 @@ void RequestVerificationService::failCompletionExecutionVerification(
 	Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
 
 	assembleReportMessage(request, report);
-	report.append<ErrorCode>(errorCode); // error code
+	report.append<ECSSErrorCode>(errorCode); // error code
 
 	storeMessage(report);
 }
 
-void RequestVerificationService::failRoutingVerification(const Message& request,
-                                                         ErrorHandler::RoutingErrorType errorCode) {
-	// TM[1,10] failed routing verification report
+void RequestVerificationService::failCompletionExecutionVerification(const Message& request, const SpacecraftErrorCode errorCode) {
+		// TM[1,8] failed completion of execution verification report
 
-	Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
+		Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
 
-	assembleReportMessage(request, report);
-	report.append<ErrorCode>(errorCode); // error code
+		assembleReportMessage(request, report);
+		report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
-}
+		storeMessage(report);
+	}
+
+	void RequestVerificationService::failRoutingVerification(const Message& request,
+	                                                         ErrorHandler::RoutingErrorType errorCode) {
+		// TM[1,10] failed routing verification report
+
+		Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
+
+		assembleReportMessage(request, report);
+		report.append<ECSSErrorCode>(errorCode); // error code
+
+		storeMessage(report);
+	}
 
 #endif

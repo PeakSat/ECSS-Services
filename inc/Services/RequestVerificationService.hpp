@@ -6,6 +6,8 @@
 #include "Message.hpp"
 #include "Service.hpp"
 
+#include <ErrorDefinitions.hpp>
+
 /**
  * Implementation of the ST[01] request verification service
  *
@@ -44,7 +46,7 @@ public:
 	/**
 	 * MemoryDataLength of bits that represent the secondary header flag
 	 */
-	inline static constexpr uint8_t SecondaryHeaderFlagBits = 1 ;
+	inline static constexpr uint8_t SecondaryHeaderFlagBits = 1;
 	/**
 	 * MemoryDataLength of bits that represent the application id
 	 */
@@ -151,6 +153,9 @@ public:
 	 */
 	void failCompletionExecutionVerification(const Message& request,
 	                                         ErrorHandler::ExecutionCompletionErrorType errorCode);
+
+	void failCompletionExecutionVerification(const Message& request,
+	                                         SpacecraftErrorCode errorCode);
 
 	/**
 	 * TM[1,10] failed routing verification report

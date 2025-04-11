@@ -184,11 +184,15 @@ String<CCSDSMaxMessageSize> MessageParser::composeECSS(const Message& message, u
 		header[4] = static_cast<uint8_t>(message.messageTypeCounter & 0xffU);
 		header[5] = message.applicationId >> 8U; // DestinationID
 		header[6] = message.applicationId;
-		uint32_t ticks = TimeKeepingTask::getUnixEpoch();
-		header[7] = (ticks >> 24) & 0xffU;
-		header[8] = (ticks >> 16) & 0xffU;
-		header[9] = (ticks >> 8) & 0xffU;
-		header[10] = (ticks) & 0xffU;
+		// Get current time and convert to epoch seconds
+		const uint64_t epochSeconds = TimeGetter::getCurrentTimeUTC().toEpochSeconds();
+
+		// Format as 4-byte value for header (masking to 32 bits)
+		const auto ticks = static_cast<uint32_t>(epochSeconds & 0xFFFFFFFFULL);
+		header[7] = static_cast<uint8_t>((ticks >> 24) & 0xFFU);
+		header[8] = static_cast<uint8_t>((ticks >> 16) & 0xFFU);
+		header[9] = static_cast<uint8_t>((ticks >> 8) & 0xFFU);
+		header[10] = static_cast<uint8_t>(ticks & 0xFFU);
 	}
 
 	String<CCSDSMaxMessageSize> dataString(header.data(), ((message.packetType == Message::TM) ? ECSSSecondaryTMHeaderSize : ECSSSecondaryTCHeaderSize));
@@ -224,8 +228,7 @@ String<CCSDSMaxMessageSize> MessageParser::compose(const Message& message) {
 	packetId |= (1U << 11U);                                              // Secondary header flag
 	packetId |= (message.packetType == Message::TC) ? (1U << 12U) : (0U); // Ignore-MISRA
 	SequenceCount const packetSequenceControl = message.packetSequenceCount | (3U << 14U);
-	// uint16_t packetDataLength = ecssMessage.size() - 1;
-	uint16_t packetDataLength = ecssMessage.size();
+	uint16_t packetDataLength = ecssMessage.size() - 1;
 
 	// Create the CCSDS header
 	header[0] = packetId >> 8U;
