@@ -25,7 +25,7 @@ void EventReportService::informativeEventReport(Event eventID, const String<ECSS
 		report.append<EventDefinitionId>(eventID);
 		report.appendString(data);
 
-		Services.eventAction.executeAction(eventID);
+		// Services.eventAction.executeAction(eventID);
 		storeMessage(report);
 	}
 }

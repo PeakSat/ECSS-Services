@@ -14,11 +14,7 @@ void FunctionManagementService::execute(Message& message) {
 	const uint16_t functionIDraw = (message.data[0] << 8) | message.data[1];
 	etl::array<uint8_t, ECSSFunctionMaxArgLength> functionArgs{};
 
-	if (message.dataSize - 2 > ECSSFunctionMaxArgLength) {
-		Services.requestVerification.failAcceptanceVerification(message, ErrorHandler::AcceptanceErrorType::UnacceptableMessage);
-		return;
-	}
-	etl::copy(message.data.begin() + 2, message.data.begin() + message.dataSize, functionArgs.begin());
+	etl::copy_n(message.data.begin()+2, ECSSFunctionMaxArgLength, functionArgs.begin());
 	SpacecraftErrorCode status = GENERIC_ERROR_TODO;
 
 	status = call(functionIDraw, functionArgs); // TC[8,1]
