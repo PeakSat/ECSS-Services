@@ -176,7 +176,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValueAsUint64 = MemoryManager::getParameterAsUINT64(monitoredParameterId);
+		auto currentValueAsUint64 = MemoryManager::getParameterAsUINT64(monitoredParameterId).value();
 		uint64_t maskedValue = currentValueAsUint64 & getMask();
 
 		if (maskedValue == getExpectedValue()) {
@@ -248,7 +248,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId).value();
 		if (currentValue < getLowLimit()) {
 			checkingStatus = BelowLowLimit;
 		} else if (currentValue > getHighLimit()) {
@@ -373,7 +373,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId).value();
 		auto currentTimestamp = TimeGetter::getCurrentTimeUTC();
 
 		if (hasOldValue()) {
