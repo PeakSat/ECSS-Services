@@ -248,7 +248,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId);
 		if (currentValue < getLowLimit()) {
 			checkingStatus = BelowLowLimit;
 		} else if (currentValue > getHighLimit()) {
@@ -373,7 +373,7 @@ public:
 	 */
 	void performCheck() override {
 		auto previousStatus = checkingStatus;
-		auto currentValue = MemoryManager::getParameterAsUINT64(monitoredParameterId);
+		auto currentValue = MemoryManager::getParameterAsDOUBLE(monitoredParameterId);
 		auto currentTimestamp = TimeGetter::getCurrentTimeUTC();
 
 		if (hasOldValue()) {
