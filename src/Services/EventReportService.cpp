@@ -89,10 +89,12 @@ void EventReportService::enableReportGeneration(Message& message) {
 	uint16_t const length = message.readUint16();
 	if (length > numberOfEvents) {
 		//Add ST[01] handling
-		ErrorHandler::reportInternalError(ErrorHandler::InternalErrorType::LengthExceedsNumberOfEvents);
+		ErrorHandler::reportError(message, ErrorHandler::InternalErrorType::LengthExceedsNumberOfEvents);
 		return;
 	}
-	if (length <= numberOfEvents) { for (uint16_t i = 0; i < length; i++) { stateOfEvents[message.read<EventDefinitionId>()] = true; } }
+	if (length <= numberOfEvents) {
+		for (uint16_t i = 0; i < length; i++) { stateOfEvents[message.read<EventDefinitionId>()] = true; }
+	}
 	disabledEventsCount = stateOfEvents.size() - stateOfEvents.count();
 }
 
@@ -101,10 +103,12 @@ void EventReportService::disableReportGeneration(Message& message) {
 	uint16_t const length = message.readUint16();
 	if (length > numberOfEvents) {
 		//Add ST[01] handling
-		ErrorHandler::reportInternalError(ErrorHandler::InternalErrorType::LengthExceedsNumberOfEvents);
+		ErrorHandler::reportError(message, ErrorHandler::InternalErrorType::LengthExceedsNumberOfEvents);
 		return;
 	}
-	if (length <= numberOfEvents) { for (uint16_t i = 0; i < length; i++) { stateOfEvents[message.read<EventDefinitionId>()] = false; } }
+	if (length <= numberOfEvents) {
+		for (uint16_t i = 0; i < length; i++) { stateOfEvents[message.read<EventDefinitionId>()] = false; }
+	}
 	disabledEventsCount = stateOfEvents.size() - stateOfEvents.count();
 }
 
@@ -119,20 +123,27 @@ void EventReportService::listOfDisabledEventsReport() {
 
 	uint16_t const numberOfDisabledEvents = stateOfEvents.size() - stateOfEvents.count(); // NOLINT(cppcoreguidelines-init-variables)
 	report.appendHalfword(numberOfDisabledEvents);
-	for (size_t i = 0; i < stateOfEvents.size(); i++) { if (not stateOfEvents[i]) { report.append<EventDefinitionId>(i); } }
+	for (size_t i = 0; i < stateOfEvents.size(); i++) {
+		if (not stateOfEvents[i]) { report.append<EventDefinitionId>(i); }
+	}
 
 	storeMessage(report);
 }
 
 void EventReportService::execute(Message& message) {
 	switch (message.messageType) {
-		case EnableReportGenerationOfEvents: enableReportGeneration(message);
+		case EnableReportGenerationOfEvents:
+			enableReportGeneration(message);
 			break;
-		case DisableReportGenerationOfEvents: disableReportGeneration(message);
+		case DisableReportGenerationOfEvents:
+			disableReportGeneration(message);
 			break;
-		case ReportListOfDisabledEvents: requestListOfDisabledEvents(message);
+		case ReportListOfDisabledEvents:
+			requestListOfDisabledEvents(message);
 			break;
-		default: ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+		default:
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 

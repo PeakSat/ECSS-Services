@@ -344,7 +344,8 @@ void OnBoardMonitoringService::execute(Message& message) {
 			reportParameterMonitoringDefinitions(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 

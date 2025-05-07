@@ -39,7 +39,8 @@ void TestService::execute(Message& message) {
 			onBoardConnection(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 

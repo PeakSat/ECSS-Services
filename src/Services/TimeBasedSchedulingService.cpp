@@ -290,7 +290,8 @@ void TimeBasedSchedulingService::execute(Message& message) {
 			detailReportAllActivities(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 

@@ -31,7 +31,7 @@ void ParameterService::reportParameters(Message& paramIds) {
 	storeMessage(parameterReport);
 }
 
-void ParameterService::setParameters(Message& newParamValues){
+void ParameterService::setParameters(Message& newParamValues) {
 	if (!newParamValues.assertTC(ServiceType, MessageType::SetParameterValues)) {
 		return;
 	}
@@ -44,7 +44,7 @@ void ParameterService::setParameters(Message& newParamValues){
 	}
 }
 
-void ParameterService::appendParameterToMessage(Message& message, ParameterId parameter){
+void ParameterService::appendParameterToMessage(Message& message, ParameterId parameter) {
 	PARAMETER_TYPE type = getParameterType(parameter);
 
 	switch (type) {
@@ -114,7 +114,7 @@ void ParameterService::appendParameterToMessage(Message& message, ParameterId pa
 	}
 }
 
-void ParameterService::updateParameterFromMessage(Message& message, ParameterId parameter){
+void ParameterService::updateParameterFromMessage(Message& message, ParameterId parameter) {
 	PARAMETER_TYPE type = getParameterType(parameter);
 
 	switch (type) {
@@ -183,7 +183,8 @@ void ParameterService::execute(Message& message) {
 			setParameters(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 
