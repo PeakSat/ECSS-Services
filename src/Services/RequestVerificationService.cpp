@@ -24,7 +24,7 @@ void RequestVerificationService::successAcceptanceVerification(const Message& re
 }
 
 void RequestVerificationService::failAcceptanceVerification(const Message& request,
-                                                            ErrorHandler::AcceptanceErrorType errorCode) {
+                                                            SpacecraftErrorCode errorCode) {
 	// TM[1,2] failed acceptance verification report
 
 	Message report = createTM(RequestVerificationService::MessageType::FailedAcceptanceReport);
@@ -46,7 +46,7 @@ void RequestVerificationService::successStartExecutionVerification(const Message
 }
 
 void RequestVerificationService::failStartExecutionVerification(const Message& request,
-                                                                ErrorHandler::ExecutionStartErrorType errorCode) {
+                                                                SpacecraftErrorCode errorCode) {
 	// TM[1,4] failed start of execution verification report
 
 	Message report = createTM(RequestVerificationService::MessageType::FailedStartOfExecution);
@@ -70,7 +70,7 @@ void RequestVerificationService::successProgressExecutionVerification(const Mess
 }
 
 void RequestVerificationService::failProgressExecutionVerification(const Message& request,
-                                                                   ErrorHandler::ExecutionProgressErrorType errorCode,
+                                                                   SpacecraftErrorCode errorCode,
                                                                    StepId stepID) {
 	// TM[1,6] failed progress of execution verification report
 
@@ -94,7 +94,7 @@ void RequestVerificationService::successCompletionExecutionVerification(const Me
 }
 
 void RequestVerificationService::failCompletionExecutionVerification(
-    const Message& request, ErrorHandler::ExecutionCompletionErrorType errorCode) {
+    const Message& request, SpacecraftErrorCode errorCode) {
 	// TM[1,8] failed completion of execution verification report
 
 	Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
@@ -105,27 +105,17 @@ void RequestVerificationService::failCompletionExecutionVerification(
 	storeMessage(report);
 }
 
-void RequestVerificationService::failCompletionExecutionVerification(const Message& request, const SpacecraftErrorCode errorCode) {
-		// TM[1,8] failed completion of execution verification report
 
-		Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
+void RequestVerificationService::failRoutingVerification(const Message& request,
+                                                         SpacecraftErrorCode errorCode) {
+	// TM[1,10] failed routing verification report
 
-		assembleReportMessage(request, report);
-		report.append<ECSSErrorCode>(errorCode); // error code
+	Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
 
-		storeMessage(report);
-	}
+	assembleReportMessage(request, report);
+	report.append<ECSSErrorCode>(errorCode); // error code
 
-	void RequestVerificationService::failRoutingVerification(const Message& request,
-	                                                         ErrorHandler::RoutingErrorType errorCode) {
-		// TM[1,10] failed routing verification report
-
-		Message report = createTM(RequestVerificationService::MessageType::FailedRoutingReport);
-
-		assembleReportMessage(request, report);
-		report.append<ECSSErrorCode>(errorCode); // error code
-
-		storeMessage(report);
-	}
+	storeMessage(report);
+}
 
 #endif
