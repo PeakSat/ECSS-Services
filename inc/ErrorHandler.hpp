@@ -502,6 +502,7 @@ public:
 	 */
 	enum RoutingErrorType {
 		UnknownRoutingError = 0,
+		TCHandlingQueueFullError = 1,
 	};
 
 	/**
