@@ -230,7 +230,7 @@ String<CCSDSMaxMessageSize> MessageParser::compose(const Message& message) {
 	SequenceCount const packetSequenceControl = message.packetSequenceCount | (3U << 14U);
 	uint16_t packetDataLength = ecssMessage.size() - 1;
 
-	// Compile the header
+	// Create the CCSDS header
 	header[0] = packetId >> 8U;
 	header[1] = packetId & 0xffU;
 	header[2] = packetSequenceControl >> 8U;
