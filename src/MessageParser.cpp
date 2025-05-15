@@ -145,7 +145,7 @@ void MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Mess
 	message.serviceType = serviceType;
 	message.messageType = messageType;
 	message.sourceId = sourceId;
-	std::copy(data + ECSSSecondaryTCHeaderSize, data + ECSSSecondaryTCHeaderSize + length, message.data.begin());
+	std::copy(data + ECSSSecondaryTCHeaderSize, data + message.dataSize, message.data.begin());
 	message.dataSize = length;
 }
 
@@ -157,10 +157,10 @@ Message MessageParser::parseECSSTC(String<ECSSTCRequestStringSize> data) {
 	return message;
 }
 
-Message MessageParser::parseECSSTC(const uint8_t* data) {
+Message MessageParser::parseECSSTC(const uint8_t* data, uint16_t length) {
 	Message message;
 	message.packetType = Message::TC;
-	parseECSSTCHeader(data, ECSSTCRequestStringSize, message);
+	parseECSSTCHeader(data, length, message);
 	return message;
 }
 

@@ -65,7 +65,7 @@ public:
 	 * @param data A uint8_t array of the TC packet data
 	 * @return Parsed message
 	 */
-	static Message parseECSSTC(const uint8_t* data);
+	static Message parseECSSTC(const uint8_t* data, uint16_t length);
 
 	/**
 	 * @brief Converts a TC or TM message to a message string, appending just the ECSS header
