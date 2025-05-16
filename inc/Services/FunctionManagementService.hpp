@@ -65,7 +65,7 @@ public:
 	 * @param functionID
 	 * @param string data generated from the function
 	 */
-	void functionRespond(FunctionManagerId_t functionID, String<ECSSMaxFixedOctetStringSize>& string);
+	void functionRespond(FunctionManagerId_t functionID, const String<ECSSMaxFixedOctetStringSize>& string);
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
