@@ -127,8 +127,11 @@ Message MessageParser::parse(const uint8_t* data, uint32_t length) {
 	return message;
 }
 
-void MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message) {
-	ErrorHandler::assertRequest(length >= ECSSSecondaryTCHeaderSize, message, ErrorHandler::UnacceptableMessage);
+SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message) {
+	if (length >= ECSSSecondaryTCHeaderSize) {
+		return OBDH_ERROR_Acceptance_UnacceptableMessage;
+	}
+	// ErrorHandler::assertRequest(length >= ECSSSecondaryTCHeaderSize, message, ErrorHandler::UnacceptableMessage);
 
 	// Individual fields of the TC header
 	uint8_t const pusVersion = data[0] >> 4;
@@ -136,7 +139,10 @@ void MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Mess
 	MessageTypeNum const messageType = data[2];
 	SourceId const sourceId = (data[3] << 8) + data[4];
 
-	ErrorHandler::assertRequest(pusVersion == 2U, message, ErrorHandler::UnacceptableMessage);
+	if (pusVersion == 2U) {
+		return OBDH_ERROR_Acceptance_UnacceptableMessage;
+	}
+	// ErrorHandler::assertRequest(pusVersion == 2U, message, ErrorHandler::UnacceptableMessage);
 
 	// Remove the length of the header
 	length -= ECSSSecondaryTCHeaderSize;
@@ -147,6 +153,7 @@ void MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Mess
 	message.sourceId = sourceId;
 	std::copy(data + ECSSSecondaryTCHeaderSize, data + message.dataSize, message.data.begin());
 	message.dataSize = length;
+	return GENERIC_ERROR_NONE;
 }
 
 Message MessageParser::parseECSSTC(String<ECSSTCRequestStringSize> data) {
@@ -157,10 +164,10 @@ Message MessageParser::parseECSSTC(String<ECSSTCRequestStringSize> data) {
 	return message;
 }
 
-Message MessageParser::parseECSSTC(const uint8_t* data, uint16_t length) {
+Message MessageParser::parseECSSTC(const uint8_t* data, uint16_t length, SpacecraftErrorCode* error) {
 	Message message;
 	message.packetType = Message::TC;
-	parseECSSTCHeader(data, length, message);
+	*error = parseECSSTCHeader(data, length, message);
 	return message;
 }
 

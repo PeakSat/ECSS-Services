@@ -2,6 +2,8 @@
 #define ECSS_SERVICES_MESSAGEPARSER_HPP
 
 #include <EventActionService.hpp>
+
+#include "ErrorDefinitions.hpp"
 #include "Message.hpp"
 #include "etl/array.h"
 /**
@@ -65,7 +67,7 @@ public:
 	 * @param data A uint8_t array of the TC packet data
 	 * @return Parsed message
 	 */
-	static Message parseECSSTC(const uint8_t* data, uint16_t length);
+	static Message parseECSSTC(const uint8_t* data, uint16_t length, SpacecraftErrorCode* error);
 
 	/**
 	 * @brief Converts a TC or TM message to a message string, appending just the ECSS header
@@ -98,7 +100,7 @@ private:
 	 * @param length The size of the header
 	 * @param message The Message to modify based on the header
 	 */
-	static void parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message);
+	static SpacecraftErrorCode parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message);
 
 	/**
 	 * Parse the ECSS Telemetry packet secondary header
