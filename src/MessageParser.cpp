@@ -128,7 +128,7 @@ Message MessageParser::parse(const uint8_t* data, uint32_t length) {
 }
 
 SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message) {
-	if (length >= ECSSSecondaryTCHeaderSize) {
+	if (length < ECSSSecondaryTCHeaderSize) {
 		return OBDH_ERROR_Acceptance_UnacceptableMessage;
 	}
 	// ErrorHandler::assertRequest(length >= ECSSSecondaryTCHeaderSize, message, ErrorHandler::UnacceptableMessage);
@@ -139,7 +139,7 @@ SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, uint16
 	MessageTypeNum const messageType = data[2];
 	SourceId const sourceId = (data[3] << 8) + data[4];
 
-	if (pusVersion == 2U) {
+	if (pusVersion != 2U) {
 		return OBDH_ERROR_Acceptance_UnacceptableMessage;
 	}
 	// ErrorHandler::assertRequest(pusVersion == 2U, message, ErrorHandler::UnacceptableMessage);
