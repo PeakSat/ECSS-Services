@@ -2,8 +2,10 @@
 #define ECSS_SERVICES_SERVICE_HPP
 
 #include <cstdint>
-#include "TypeDefinitions.hpp"
+
+#include "ErrorDefinitions.hpp"
 #include "Message.hpp"
+#include "TypeDefinitions.hpp"
 
 /**
  * @defgroup Services Services
@@ -44,7 +46,7 @@ protected:
 	 * Note: For now, since we don't have any mechanisms to queue messages and send them later,
 	 * we just print the message to the screen
 	 */
-	void storeMessage(Message& message);
+	static SpacecraftErrorCode  storeMessage(Message& message, uint16_t size);
 
 	/**
 	 * This function declared only to remind us that every service must have a function like

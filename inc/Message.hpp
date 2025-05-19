@@ -27,7 +27,7 @@ public:
 	 * @return A boolean value indicating whether the messages are of the same type
 	 */
 	static bool isSameType(const Message& message1, const Message& message2) {
-		return (message1.packetType == message2.packetType) && (message1.messageType == message2.messageType) &&
+		return (message1.packet_type_ == message2.packet_type_) && (message1.messageType == message2.messageType) &&
 		       (message1.serviceType == message2.serviceType);
 	}
 
@@ -38,7 +38,7 @@ public:
 	 * @return The result of comparison
 	 */
 	bool operator==(const Message& message) const {
-		if (dataSize != message.dataSize) {
+		if (message.data_size_message_ != data_size_message_) {
 			return false;
 		}
 
@@ -60,7 +60,7 @@ public:
 	 * `this->dataSize` bytes are not equal between the two messages.
 	 */
 	bool bytesEqualWith(const Message& message) const {
-		if (message.dataSize < dataSize) {
+		if (message.data_size_message_ < data_size_message_) {
 			return false;
 		}
 
@@ -73,7 +73,8 @@ public:
 
 	enum PacketType {
 		TM = 0, ///< Telemetry
-		TC = 1  ///< Telecommand
+		TC = 1,  ///< Telecommand
+	    UNDEFINED = 2,
 	};
 
 	// The service and message IDs are 8 bits (5.3.1b, 5.3.3.1d)
@@ -81,25 +82,30 @@ public:
 	uint8_t messageType = 0;
 
 	// As specified in CCSDS 133.0-B-1 (TM or TC)
-	PacketType packetType = PacketType::TM;
+	PacketType packet_type_ = PacketType::UNDEFINED;
 
 	/**
 	 * The destination APID of the message
 	 *
 	 * Maximum value of 2047 (5.4.2.1c)
 	 */
-	uint16_t applicationId = ApplicationId;
+	uint16_t application_ID_ = ApplicationId;
 
-	uint16_t sourceId = 0;
+	uint16_t source_ID_ = 0;
 
 	//> 7.4.3.1b
-	uint16_t messageTypeCounter = 0;
+	uint16_t message_type_counter_ = 0;
 
 	//> 7.4.1, as defined in CCSDS 133.0-B-1
-	uint16_t packetSequenceCount = 0;
+	uint16_t packet_sequence_count_ = 0;
 
-	// TODO (#205): Find out if we need more than 16 bits for this
-	uint16_t dataSize = 0;
+    uint16_t total_size_ccsds_ = 0;
+
+    uint16_t data_size_ecss_ = 0;
+
+    uint16_t total_size_ecss_ = 0;
+
+    uint16_t data_size_message_ = 0;
 
 
 	/**
@@ -260,8 +266,8 @@ public:
 	 */
 	void readCString(char* string, uint16_t size);
 
-	Message(uint8_t serviceType, uint8_t messageType, PacketType packetType, uint16_t applicationId);
-	Message(uint8_t serviceType, uint8_t messageType, Message::PacketType packetType);
+	Message(uint8_t serviceType, uint8_t messageType, PacketType packet_type, uint16_t applicationId);
+	Message(uint8_t serviceType, uint8_t messageType, PacketType packet_type);
 
 	/**
 	 * Adds a single-byte boolean value to the end of the message
@@ -606,29 +612,6 @@ public:
 		return Time::DefaultCUC(duration);
 	}
 
-	UTCTimestamp readUTCTimestamp() {
-		const auto time = readUint32();
-		// Convert epoch seconds to time_t for standard time functions
-		const auto timeValue = static_cast<time_t>(time);
-
-		// Use gmtime to convert to calendar time
-		const struct tm* timeInfo = gmtime(&timeValue);
-
-		if (timeInfo == nullptr) {
-			// Handle error case - return a default timestamp
-			return UTCTimestamp{};
-		}
-
-		// Construct and return a UTCTimestamp with the calculated values
-		return UTCTimestamp{
-		    static_cast<uint16_t>(timeInfo->tm_year + 1900), // gmtime returns years since 1900
-		    static_cast<uint8_t>(timeInfo->tm_mon + 1),      // gmtime returns months 0-11
-		    static_cast<uint8_t>(timeInfo->tm_mday),         // day of month (1-31)
-		    static_cast<uint8_t>(timeInfo->tm_hour),         // hours (0-23)
-		    static_cast<uint8_t>(timeInfo->tm_min),          // minutes (0-59)
-		    static_cast<uint8_t>(timeInfo->tm_sec)           // seconds (0-59)
-		};
-	}
 	/**
 	 * Fetches a N-byte string from the current position in the message
 	 *
@@ -702,10 +685,10 @@ public:
 	 *
 	 * @return True if the message is of correct type, false if not
 	 */
-	bool assertType(Message::PacketType expectedPacketType, uint8_t expectedServiceType, uint8_t expectedMessageType) const {
+	bool assertType(PacketType expectedpacket_type_, uint8_t expectedServiceType, uint8_t expectedMessageType) const {
 		bool status = true;
 
-		if ((packetType != expectedPacketType) || (serviceType != expectedServiceType) ||
+		if ((packet_type_ != expectedpacket_type_) || (serviceType != expectedServiceType) ||
 		    (messageType != expectedMessageType)) {
 			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
 			status = false;

@@ -5,35 +5,34 @@
 #include "ServicePool.hpp"
 #include "macros.hpp"
 
+Message::Message(ServiceTypeNum serviceType, MessageTypeNum messageType, PacketType packet_type, ApplicationProcessId application_ID)
+    : serviceType(serviceType), messageType(messageType), packet_type_(packet_type), application_ID_(application_ID) {}
 
-Message::Message(ServiceTypeNum serviceType, MessageTypeNum messageType, PacketType packetType, ApplicationProcessId applicationId)
-    : serviceType(serviceType), messageType(messageType), packetType(packetType), applicationId(applicationId) {}
-
-Message::Message(ServiceTypeNum serviceType, MessageTypeNum messageType, PacketType packetType)
-    : serviceType(serviceType), messageType(messageType), packetType(packetType), applicationId(ApplicationId) {}
+Message::Message(ServiceTypeNum serviceType, MessageTypeNum messageType, PacketType packet_type)
+    : serviceType(serviceType), messageType(messageType),  packet_type_(packet_type) {}
 
 void Message::appendBits(uint8_t numBits, uint16_t data) {
 	// TODO(#271): Add assertion that data does not contain 1s outside of numBits bits
 	ASSERT_INTERNAL(numBits <= 16, ErrorHandler::TooManyBitsAppend);
 
 	while (numBits > 0) { // For every sequence of 8 bits...
-		ASSERT_INTERNAL(dataSize < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+		ASSERT_INTERNAL(data_size_message_ < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 
 		if ((currentBit + numBits) >= 8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 			// Will have to shift the bits and insert the next ones later
 			auto bitsToAddNow = static_cast<uint8_t>(8 - currentBit); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 
-			this->data[dataSize] |= static_cast<uint8_t>(data >> (numBits - bitsToAddNow));
+			this->data[data_size_message_] |= static_cast<uint8_t>(data >> (numBits - bitsToAddNow));
 
 			// Remove used bits
 			data &= (1 << (numBits - bitsToAddNow)) - 1;
 			numBits -= bitsToAddNow;
 
 			currentBit = 0;
-			dataSize++;
+			data_size_message_++;
 		} else {
 			// Just add the remaining bits
-			this->data[dataSize] |= static_cast<uint8_t>(data << (8 - currentBit - numBits)); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+			this->data[data_size_message_] |= static_cast<uint8_t>(data << (8 - currentBit - numBits)); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 			currentBit += numBits;
 			numBits = 0;
 		}
@@ -44,43 +43,43 @@ void Message::finalize() {
 	// Define the spare field in telemetry and telecommand user data field (7.4.3.2.c and 7.4.4.2.c)
 	if (currentBit != 0) {
 		currentBit = 0;
-		dataSize++;
+		data_size_message_++;
 	}
 
-	if (packetType == PacketType::TM) {
-		messageTypeCounter = Services.getAndUpdateMessageTypeCounter(serviceType, messageType);
-		packetSequenceCount = Services.getAndUpdatePacketSequenceCounter();
+	if (packet_type_ == PacketType::TM) {
+		message_type_counter_ = Services.getAndUpdateMessageTypeCounter(serviceType, messageType);
+		packet_sequence_count_ = Services.getAndUpdatePacketSequenceCounter();
 	}
 }
 
 void Message::appendByte(uint8_t value) {
-	ASSERT_INTERNAL(dataSize < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	ASSERT_INTERNAL(data_size_message_ < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 	ASSERT_INTERNAL(currentBit == 0, ErrorHandler::ByteBetweenBits);
 
-	data[dataSize] = value;
-	dataSize++;
+	data[data_size_message_] = value;
+	data_size_message_++;
 }
 
 void Message::appendHalfword(uint16_t value) {
-	ASSERT_INTERNAL((dataSize + 2) <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	ASSERT_INTERNAL((data_size_message_ + 2) <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 	ASSERT_INTERNAL(currentBit == 0, ErrorHandler::ByteBetweenBits);
 
-	data[dataSize] = static_cast<uint8_t>((value >> 8) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-	data[dataSize + 1] = static_cast<uint8_t>(value & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_] = static_cast<uint8_t>((value >> 8) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_ + 1] = static_cast<uint8_t>(value & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 
-	dataSize += 2;
+	data_size_message_ += 2;
 }
 
 void Message::appendWord(uint32_t value) {
-	ASSERT_INTERNAL((dataSize + 4) <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	ASSERT_INTERNAL((data_size_message_ + 4) <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 	ASSERT_INTERNAL(currentBit == 0, ErrorHandler::ByteBetweenBits);
 
-	data[dataSize] = static_cast<uint8_t>((value >> 24) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-	data[dataSize + 1] = static_cast<uint8_t>((value >> 16) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-	data[dataSize + 2] = static_cast<uint8_t>((value >> 8) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-	data[dataSize + 3] = static_cast<uint8_t>(value & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_] = static_cast<uint8_t>((value >> 24) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_ + 1] = static_cast<uint8_t>((value >> 16) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_ + 2] = static_cast<uint8_t>((value >> 8) & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+	data[data_size_message_ + 3] = static_cast<uint8_t>(value & 0xFF); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 
-	dataSize += 4;
+	data_size_message_ += 4;
 }
 
 uint16_t Message::readBits(uint8_t numBits) {
@@ -163,30 +162,32 @@ void Message::resetRead() {
 	currentBit = 0;
 }
 
-void Message::appendMessage(const Message& message, uint16_t size) {
-	appendString(MessageParser::composeECSS(message, size));
+void Message::appendMessage(const Message& message, uint16_t total_ecss_size) {
+    auto result = MessageParser::composeECSS(message, total_ecss_size);
+    if (result.first == GENERIC_ERROR_NONE)
+	    appendString(result.second);
 }
 
 void Message::appendString(const etl::istring& string) {
-	ASSERT_INTERNAL(dataSize + string.size() <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	ASSERT_INTERNAL(data_size_message_+ string.size() <= ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 	// TODO(#272): Do we need to keep this check? How does etl::string handle it?
 	ASSERT_INTERNAL(string.size() <= string.capacity(), ErrorHandler::StringTooLarge);
-	std::copy(string.data(), string.data() + string.size(), data.begin() + dataSize);
-	dataSize += string.size();
+	std::copy(string.data(), string.data() + string.size(), data.begin() + data_size_message_);
+	data_size_message_ += string.size();
 }
 
 void Message::appendFixedString(const etl::istring& string) {
-	ASSERT_INTERNAL((dataSize + string.max_size()) < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
-	std::copy(string.data(), string.data() + string.size(), data.begin() + dataSize);
-	(void) memset(data.begin() + dataSize + string.size(), 0, string.max_size() - string.size());
-	dataSize += string.max_size();
+	ASSERT_INTERNAL((data_size_message_ + string.max_size()) < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	std::copy(string.data(), string.data() + string.size(), data.begin() + data_size_message_);
+	(void) memset(data.begin() + data_size_message_ + string.size(), 0, string.max_size() - string.size());
+	data_size_message_ += string.max_size();
 }
 
 void Message::appendOctetString(const etl::istring& string) {
 	// Make sure that the string is large enough to count
 	ASSERT_INTERNAL(string.size() <= (std::numeric_limits<uint16_t>::max)(), ErrorHandler::StringTooLarge);
 	// Redundant check to make sure we fail before appending string.size()
-	ASSERT_INTERNAL(dataSize + 2 + string.size() < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
+	ASSERT_INTERNAL(data_size_message_ + 2 + string.size() < ECSSMaxMessageSize, ErrorHandler::MessageTooLarge);
 
 	appendUint16(string.size());
 	appendString(string);

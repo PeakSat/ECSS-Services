@@ -28,7 +28,7 @@ void ParameterService::reportParameters(Message& paramIds) {
 		appendParameterToMessage(parameterReport, currId);
 	}
 
-	storeMessage(parameterReport);
+	storeMessage(parameterReport, parameterReport.data_size_message_);
 }
 
 void ParameterService::setParameters(Message& newParamValues) {

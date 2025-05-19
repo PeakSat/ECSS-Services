@@ -26,7 +26,7 @@ void EventReportService::informativeEventReport(Event eventID, const String<ECSS
 		report.appendString(data);
 
 		// Services.eventAction.executeAction(eventID);
-		storeMessage(report);
+		storeMessage(report, report.data_size_message_);
 	}
 }
 
@@ -44,7 +44,7 @@ void EventReportService::lowSeverityAnomalyReport(Event eventID, const String<EC
 		lastLowSeverityReportID = static_cast<EventDefinitionId>(eventID);
 
 		Services.eventAction.executeAction(eventID);
-		storeMessage(report);
+		storeMessage(report, report.data_size_message_);
 	}
 }
 
@@ -62,7 +62,7 @@ void EventReportService::mediumSeverityAnomalyReport(Event eventID, const String
 		lastMediumSeverityReportID = static_cast<EventDefinitionId>(eventID);
 
 		Services.eventAction.executeAction(eventID);
-		storeMessage(report);
+		storeMessage(report, report.data_size_message_);
 	}
 }
 
@@ -80,7 +80,7 @@ void EventReportService::highSeverityAnomalyReport(Event eventID, const String<E
 		lastHighSeverityReportID = static_cast<EventDefinitionId>(eventID);
 
 		Services.eventAction.executeAction(eventID);
-		storeMessage(report);
+		storeMessage(report, report.data_size_message_);
 	}
 }
 
@@ -127,7 +127,7 @@ void EventReportService::listOfDisabledEventsReport() {
 		if (not stateOfEvents[i]) { report.append<EventDefinitionId>(i); }
 	}
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void EventReportService::execute(Message& message) {

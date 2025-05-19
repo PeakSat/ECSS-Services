@@ -180,7 +180,7 @@ void EventActionService::eventActionStatusReport() {
 		report.append<EventDefinitionId>(element.second.eventDefinitionID);
 		report.appendBoolean(element.second.enabled);
 	}
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void EventActionService::enableEventActionFunction(const Message& message) {

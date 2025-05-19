@@ -7,11 +7,11 @@
 void RequestVerificationService::assembleReportMessage(const Message& request, Message& report) {
 
 	report.appendEnumerated(CCSDSPacketVersionBits, CCSDSPacketVersion);
-	report.appendEnumerated(PacketTypeBits, request.packetType);
+	report.appendEnumerated(PacketTypeBits, request.packet_type_);
 	report.appendBits(SecondaryHeaderFlagBits, SecondaryHeaderFlag);
-	report.appendEnumerated(ApplicationIdBits, request.applicationId);
+	report.appendEnumerated(ApplicationIdBits, request.application_ID_);
 	report.appendEnumerated(ECSSSequenceFlagsBits, ECSSSequenceFlags);
-	report.appendBits(PacketSequenceCountBits, request.packetSequenceCount);
+	report.appendBits(PacketSequenceCountBits, request.packet_sequence_count_);
 }
 
 void RequestVerificationService::successAcceptanceVerification(const Message& request) {
@@ -20,7 +20,7 @@ void RequestVerificationService::successAcceptanceVerification(const Message& re
 	Message report = createTM(RequestVerificationService::MessageType::SuccessfulAcceptanceReport);
 
 	assembleReportMessage(request, report);
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::failAcceptanceVerification(const Message& request,
@@ -32,7 +32,7 @@ void RequestVerificationService::failAcceptanceVerification(const Message& reque
 	assembleReportMessage(request, report);
 	report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::successStartExecutionVerification(const Message& request) {
@@ -42,7 +42,7 @@ void RequestVerificationService::successStartExecutionVerification(const Message
 
 	assembleReportMessage(request, report);
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::failStartExecutionVerification(const Message& request,
@@ -55,7 +55,7 @@ void RequestVerificationService::failStartExecutionVerification(const Message& r
 
 	report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::successProgressExecutionVerification(const Message& request, StepId stepID) {
@@ -66,7 +66,7 @@ void RequestVerificationService::successProgressExecutionVerification(const Mess
 	assembleReportMessage(request, report);
 	report.append<StepId>(stepID); // step ID
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::failProgressExecutionVerification(const Message& request,
@@ -80,7 +80,7 @@ void RequestVerificationService::failProgressExecutionVerification(const Message
 	report.append<StepId>(stepID);           // step ID
 	report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::successCompletionExecutionVerification(const Message& request) {
@@ -90,7 +90,7 @@ void RequestVerificationService::successCompletionExecutionVerification(const Me
 
 	assembleReportMessage(request, report);
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void RequestVerificationService::failCompletionExecutionVerification(
@@ -102,7 +102,7 @@ void RequestVerificationService::failCompletionExecutionVerification(
 	assembleReportMessage(request, report);
 	report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 
@@ -115,7 +115,7 @@ void RequestVerificationService::failRoutingVerification(const Message& request,
 	assembleReportMessage(request, report);
 	report.append<ECSSErrorCode>(errorCode); // error code
 
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 #endif

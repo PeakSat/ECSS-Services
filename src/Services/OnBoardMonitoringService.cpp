@@ -305,7 +305,7 @@ void OnBoardMonitoringService::reportParameterMonitoringDefinitions(Message& mes
 			}
 		}
 	}
-	storeMessage(pmonDefinitionReport);
+	storeMessage(pmonDefinitionReport, pmonDefinitionReport.data_size_message_);
 }
 
 void OnBoardMonitoringService::checkAll() const {
