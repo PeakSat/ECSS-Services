@@ -96,7 +96,7 @@ void MessageParser::execute(Message& message) { //cppcheck-suppress[constParamet
 
 SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, Message& message, bool error_reporting_active, bool parse_ccsds) {
     if (parse_ccsds == false)
-        return TTC_ERROR_MESSAGE_PARSER_PARSE_WRONG_USAGE;
+        return OBDH_ERROR_MESSAGE_PARSER_PARSE_WRONG_PUS_VERSION;
     uint16_t const packetHeaderIdentification = (data[0] << 8) | data[1];
     uint16_t const packetSequenceControl = (data[2] << 8) | data[3];
     uint16_t const packetCCSDSDataLength = (data[4] << 8) | data[5];
@@ -111,25 +111,25 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
     message = Message(0, 0, packet_type, APID);
 
     if (packet_type == Message::TM && length < ECSSSecondaryTMHeaderSize) {
-        return TTC_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
     }
     if (packet_type == Message::TC && length < ECSSSecondaryTCHeaderSize) {
-        return TTC_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
     }
 
     if (error_reporting_active) {
         if (versionNumber != 0U)
-            return TTC_ERROR_PUS_VERSION_WRONG;
+            return OBDH_ERROR_MESSAGE_PARSER_PARSE_WRONG_PUS_VERSION;
         if (!secondaryHeaderFlag)
-            return TTC_ERROR_MESSAGE_PARSER_PARSE_SECONDARY_HEADER;
+            return OBDH_ERROR_MESSAGE_PARSER_PARSE_SECONDARY_HEADER;
         if (sequenceFlags != 0x3U)
-            return TTC_ERROR_MESSAGE_PARSER_PARSE_SEQUENCE_FLAGS;
+            return OBDH_ERROR_MESSAGE_PARSER_PARSE_SEQUENCE_FLAGS;
     }
 
     message.packet_sequence_count_ = packetSequenceCount;
 
     if (packetCCSDSDataLength > ECSSMaxMessageSize)
-        return TTC_ERROR_MESSAGE_PARSER_TC_SIZE_LARGER_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LARGER_THAN_EXPECTED;
     //
     message.total_size_ccsds_ = length;
     message.total_size_ecss_ = message.total_size_ccsds_ - CCSDSPrimaryHeaderSize;
@@ -158,10 +158,10 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
 SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, Message& message) {
     // sanity check
     if (message.total_size_ecss_ > ECSSMaxMessageSize)
-        return TTC_ERROR_MESSAGE_PARSER_TC_SIZE_LARGER_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LARGER_THAN_EXPECTED;
 
     if (message.total_size_ecss_ < ECSSSecondaryTCHeaderSize) {
-        return TTC_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
     }
 	// Individual fields of the TC header
 	uint8_t const pusVersion = data[0] >> 4;
@@ -170,7 +170,7 @@ SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, Messag
 	SourceId const sourceId = (data[3] << 8) + data[4];
 
     if (pusVersion != 2U)
-        return TTC_ERROR_PUS_VERSION_WRONG;
+        return OBDH_ERROR_MESSAGE_PARSER_PARSE_WRONG_PUS_VERSION;
 
 	// Remove the length of the header
 	message.data_size_ecss_ = message.total_size_ecss_ - ECSSSecondaryTCHeaderSize;
@@ -241,7 +241,7 @@ etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compo
 	        // return etl::make_pair(getSpacecraftErrorCodeFromECSSError(ErrorHandler::UnacceptablePacket), String<CCSDSMaxMessageSize>("Message too large"));
 	    // }
         if (currentSize > CCSDSMaxMessageSize) {
-            return etl::make_pair(TTC_ERROR_MESSAGE_PARSER_COMPOSE_ECSS_DATA_SIZE_LARGER_THAN_EXPECTED, String<CCSDSMaxMessageSize>("Message too large"));
+            return etl::make_pair(OBDH_ERROR_MESSAGE_PARSER_COMPOSE_ECSS_DATA_SIZE_LARGER_THAN_EXPECTED, String<CCSDSMaxMessageSize>("Message too large"));
         }
 	    if (currentSize < ecss_total_size) {
 	        // Pad with zeros to reach the requested size
@@ -254,7 +254,7 @@ etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compo
  etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compose(Message& message, uint16_t total_eccs_size) {
 
     if (total_eccs_size > CCSDSMaxMessageSize - CCSDSPrimaryHeaderSize) {
-        return etl::make_pair(TTC_ERROR_MESSAGE_PARSER_COMPOSE_DATA_SIZE_LARGER_THAN_EXPECTED, String<CCSDSMaxMessageSize>("Message too large"));
+        return etl::make_pair(OBDH_ERROR_MESSAGE_PARSER_COMPOSE_DATA_SIZE_LARGER_THAN_EXPECTED, String<CCSDSMaxMessageSize>("Message too large"));
     }
 	message.total_size_ecss_ = total_eccs_size;
 	if (message.packet_type_ == Message::TC) {
@@ -312,16 +312,16 @@ etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compo
 SpacecraftErrorCode MessageParser::parseECSSTMHeader(const uint8_t* data, uint16_t length, Message& message) {
     // sanity check
     if (length > ECSSMaxMessageSize) {
-        return TTC_ERROR_MESSAGE_PARSER_TM_SIZE_LARGER_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LARGER_THAN_EXPECTED;
     }
     //
     if (length < ECSSSecondaryTMHeaderSize) {
-        return TTC_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
+        return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
     }
 	// Individual fields of the TM header
 	uint8_t const pusVersion = data[0] >> 4;
     if (pusVersion != 2U)
-        return TTC_ERROR_PUS_VERSION_WRONG;
+        return OBDH_ERROR_MESSAGE_PARSER_PARSE_WRONG_PUS_VERSION;
 
 	ServiceTypeNum const serviceType = data[1];
 	MessageTypeNum const messageType = data[2];
