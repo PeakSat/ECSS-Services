@@ -129,9 +129,9 @@ void HousekeepingService::housekeepingParametersReport(ParameterReportStructureI
 }
 
 void HousekeepingService::generateOneShotHousekeepingReport(Message& request) {
-	if (!request.assertTC(ServiceType, MessageType::GenerateOneShotHousekeepingReport)) {
-		return;
-	}
+	// if (!request.assertTC(ServiceType, MessageType::GenerateOneShotHousekeepingReport)) {
+	// 	return;
+	// }
 
 	uint8_t const numOfStructsToReport = request.readUint8();
 	for (uint8_t i = 0; i < numOfStructsToReport; i++) {

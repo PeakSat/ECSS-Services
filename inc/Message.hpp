@@ -447,7 +447,7 @@ public:
 	 * @param message The message to append
 	 * @param size The fixed number of bytes that the message will take up. The empty last bytes are padded with 0s.
 	 */
-	void appendMessage(const Message& message, uint16_t size);
+	void appendMessage(Message& message, uint16_t size);
 
 	/**
 	 * Fetches a single-byte boolean value from the current position in the message

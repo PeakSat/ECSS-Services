@@ -173,7 +173,7 @@ SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, Messag
         return TTC_ERROR_PUS_VERSION_WRONG;
 
 	// Remove the length of the header
-	message.total_size_ecss_ = message.total_size_ccsds_ - ECSSSecondaryTCHeaderSize;
+	message.data_size_ecss_ = message.total_size_ecss_ - ECSSSecondaryTCHeaderSize;
 
 	// Copy the data to the message
 	message.serviceType = serviceType;
@@ -194,7 +194,7 @@ SpacecraftErrorCode MessageParser::parseECSSTC(const uint8_t* data, Message& mes
     return parseECSSTCHeader(data, message);
 }
 
-etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::composeECSS(const Message& message, uint16_t ecss_total_size) {
+etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::composeECSS(Message& message, uint16_t ecss_total_size) {
 	// We will create an array with the maximum size.
 	etl::array<uint8_t, ECSSSecondaryTMHeaderSize> header = {};
 
@@ -251,11 +251,20 @@ etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compo
 	return etl::make_pair(GENERIC_ERROR_NONE, outData);
 }
 
- etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compose(const Message& message, uint16_t total_eccs_size) {
+ etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> MessageParser::compose(Message& message, uint16_t total_eccs_size) {
 
     if (total_eccs_size > CCSDSMaxMessageSize - CCSDSPrimaryHeaderSize) {
         return etl::make_pair(TTC_ERROR_MESSAGE_PARSER_COMPOSE_DATA_SIZE_LARGER_THAN_EXPECTED, String<CCSDSMaxMessageSize>("Message too large"));
     }
+	message.total_size_ecss_ = total_eccs_size;
+	if (message.packet_type_ == Message::TC) {
+		message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTCHeaderSize;
+	}
+
+	if (message.packet_type_ == Message::TM) {
+		message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTMHeaderSize;
+	}
+	message.total_size_ccsds_ = total_eccs_size + CCSDSPrimaryHeaderSize;
 
 	// First, compose the ECSS part
     // here the size must be totalECSSSize

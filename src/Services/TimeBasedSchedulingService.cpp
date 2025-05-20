@@ -170,12 +170,12 @@ void TimeBasedSchedulingService::detailReportAllActivities(const Message& reques
 	timeBasedScheduleDetailReport(scheduledActivities);
 }
 
-void TimeBasedSchedulingService::timeBasedScheduleDetailReport(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities) {
+void TimeBasedSchedulingService::timeBasedScheduleDetailReport(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities) {
 	// todo (#228): (#229) append sub-schedule and group ID if they are defined
 	Message report = createTM(TimeBasedSchedulingService::MessageType::TimeBasedScheduleReportById);
 	report.appendUint16(static_cast<uint16_t>(listOfActivities.size()));
 
-	for (const auto& activity: listOfActivities) {
+	for (auto& activity: listOfActivities) {
 		report.appendUTCTimestamp(activity.requestReleaseTime); // todo (#267): Replace with the time parser
 		report.appendString(MessageParser::composeECSS(activity.request, activity.request.data_size_message_).second);
 	}

@@ -83,14 +83,14 @@ public:
 	 * error. Messages smaller than \p size are padded with zeros. When `size = 0`, there is no size limit.
 	 * @return A String class containing the parsed Message
 	 */
-    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> composeECSS(const Message& message, uint16_t size);
+    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> composeECSS( Message& message, uint16_t size);
 
 	/**
 	 * @brief Converts a TC or TM message to a packet string, appending the ECSS and then the CCSDS header
 	 * @param message The Message object to be parsed to a String
 	 * @return A String class containing the parsed Message
 	 */
-    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> compose(const Message& message, uint16_t size);
+    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> compose( Message& message, uint16_t size);
 
 
     /**

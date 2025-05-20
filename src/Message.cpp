@@ -162,7 +162,7 @@ void Message::resetRead() {
 	currentBit = 0;
 }
 
-void Message::appendMessage(const Message& message, uint16_t total_ecss_size) {
+void Message::appendMessage(Message& message, uint16_t total_ecss_size) {
     auto result = MessageParser::composeECSS(message, total_ecss_size);
     if (result.first == GENERIC_ERROR_NONE)
 	    appendString(result.second);
