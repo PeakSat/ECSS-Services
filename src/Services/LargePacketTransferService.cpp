@@ -10,8 +10,8 @@ void LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransaction
                                                          const String<ECSSMaxFixedOctetStringSize>& string) {
 	Message report = createTM(LargePacketTransferService::MessageType::FirstDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
-	report.append<PartSequenceNum>(partSequenceNumber);                // part sequence number
-	report.appendOctetString(string);                       // fixed octet-string
+	report.append<PartSequenceNum>(partSequenceNumber);							 // part sequence number
+	report.appendOctetString(string);											 // fixed octet-string
 	storeMessage(report);
 }
 

@@ -21,7 +21,7 @@ private:
 	/**
 	 * Maximum number of checks for each Limit Check.
 	 */
-	static constexpr uint8_t MaximumNumberOfChecksLimitCheck = 5;
+	static constexpr uint8_t MaximumNumberOfChecksLimitCheck = 1;
 
 	/**
 	 * Maximum number of checks for each Expected Value Check.
