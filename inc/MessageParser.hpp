@@ -1,6 +1,8 @@
 #ifndef ECSS_SERVICES_MESSAGEPARSER_HPP
 #define ECSS_SERVICES_MESSAGEPARSER_HPP
-#pragma once
+#include <etl/expected.h>
+
+
 #include "ErrorDefinitions.hpp"
 #include "Message.hpp"
 
@@ -83,14 +85,14 @@ public:
 	 * error. Messages smaller than \p size are padded with zeros. When `size = 0`, there is no size limit.
 	 * @return A String class containing the parsed Message
 	 */
-    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> composeECSS( Message& message, uint16_t size);
+	static etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> composeECSS(Message& message,  uint16_t size);
 
 	/**
 	 * @brief Converts a TC or TM message to a packet string, appending the ECSS and then the CCSDS header
 	 * @param message The Message object to be parsed to a String
 	 * @return A String class containing the parsed Message
 	 */
-    static etl::pair<SpacecraftErrorCode, String<CCSDSMaxMessageSize>> compose( Message& message, uint16_t size);
+    static etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> compose( Message& message, uint16_t size);
 
 
     /**

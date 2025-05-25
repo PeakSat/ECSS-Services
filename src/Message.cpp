@@ -163,9 +163,9 @@ void Message::resetRead() {
 }
 
 void Message::appendMessage(Message& message, uint16_t total_ecss_size) {
-    auto result = MessageParser::composeECSS(message, total_ecss_size);
-    if (result.first == GENERIC_ERROR_NONE)
-	    appendString(result.second);
+	auto result = MessageParser::composeECSS(message, total_ecss_size);
+	if (result.has_value())
+		appendString(result.value());
 }
 
 void Message::appendString(const etl::istring& string) {

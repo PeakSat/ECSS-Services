@@ -73,8 +73,8 @@ public:
 
 	enum PacketType {
 		TM = 0, ///< Telemetry
-		TC = 1,  ///< Telecommand
-	    UNDEFINED = 2,
+		TC = 1, ///< Telecommand
+		UNDEFINED = 2,
 	};
 
 	// The service and message IDs are 8 bits (5.3.1b, 5.3.3.1d)
@@ -99,13 +99,13 @@ public:
 	//> 7.4.1, as defined in CCSDS 133.0-B-1
 	uint16_t packet_sequence_count_ = 0;
 
-    uint16_t total_size_ccsds_ = 0;
+	uint16_t total_size_ccsds_ = 0;
 
-    uint16_t data_size_ecss_ = 0;
+	uint16_t data_size_ecss_ = 0;
 
-    uint16_t total_size_ecss_ = 0;
+	uint16_t total_size_ecss_ = 0;
 
-    uint16_t data_size_message_ = 0;
+	uint16_t data_size_message_ = 0;
 
 
 	/**
@@ -610,6 +610,28 @@ public:
 		const std::chrono::duration<uint32_t, Time::DefaultCUC::Ratio> duration(time);
 
 		return Time::DefaultCUC(duration);
+	}
+
+	UTCTimestamp readUTCTimestamp() {
+		const auto time = readUint32();
+		// Convert epoch seconds to time_t for standard time functions
+		const auto timeSeconds = static_cast<time_t>(time);
+
+		tm timeInfoStruct{};
+
+		/* Use gmtime_r instead of gmtime for thread safety */
+		if (gmtime_r(&timeSeconds, &timeInfoStruct) == nullptr) {
+			return UTCTimestamp{};
+		}
+
+		/* Create UTCTimestamp from time_t conversion */
+		return {
+		    static_cast<uint16_t>(timeInfoStruct.tm_year + 1900U),
+		    static_cast<uint8_t>(timeInfoStruct.tm_mon + 1U),
+		    static_cast<uint8_t>(timeInfoStruct.tm_mday),
+		    static_cast<uint8_t>(timeInfoStruct.tm_hour),
+		    static_cast<uint8_t>(timeInfoStruct.tm_min),
+		    static_cast<uint8_t>(timeInfoStruct.tm_sec)};
 	}
 
 	/**
