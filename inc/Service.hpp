@@ -46,7 +46,7 @@ protected:
 	 * Note: For now, since we don't have any mechanisms to queue messages and send them later,
 	 * we just print the message to the screen
 	 */
-	static SpacecraftErrorCode  storeMessage(Message& message, uint16_t size);
+	static void storeMessage(Message& message, uint16_t size);
 
 	/**
 	 * This function declared only to remind us that every service must have a function like
