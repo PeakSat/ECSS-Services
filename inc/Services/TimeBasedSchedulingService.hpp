@@ -66,8 +66,9 @@ private:
 		SourceId sourceID = 0;                  ///< Packet source ID
 
 		bool operator!=(const RequestID& rightSide) const {
-			return (sequenceCount != rightSide.sequenceCount) or (applicationID != rightSide.applicationID) or
-			       (sourceID != rightSide.sourceID);
+			return (sequenceCount != rightSide.sequenceCount)
+					or (applicationID != rightSide.applicationID)
+					or (sourceID != rightSide.sourceID);
 		}
 	};
 
@@ -93,6 +94,12 @@ private:
 	 * standard requests.
 	 */
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
+
+	/**
+	 *@brief Store the data to TC Handling file
+	 *
+	 */
+	void storeScheduleListToFile(etl::span<uint8_t> serialized_list);
 
 	/**
 	 * @brief Sort the activities by their release time
@@ -139,6 +146,10 @@ public:
 		TimeShiftALlScheduledActivities = 15,
 		DetailReportAllScheduledActivities = 16,
 	};
+
+	void storeScheduleTCList(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
+
+	void recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
 
 	/**
 	 * @brief Class constructor
