@@ -13,7 +13,7 @@ void TestService::areYouAlive(const Message& request) {
 
 void TestService::areYouAliveReport() {
 	Message report = createTM(TestService::MessageType::AreYouAliveTestReport);
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void TestService::onBoardConnection(Message& request) {
@@ -27,7 +27,7 @@ void TestService::onBoardConnection(Message& request) {
 void TestService::onBoardConnectionReport(ApplicationProcessId applicationProcessId) {
 	Message report = createTM(TestService::MessageType::OnBoardConnectionTestReport);
 	report.append<ApplicationProcessId>(applicationProcessId);
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void TestService::execute(Message& message) {
@@ -39,7 +39,8 @@ void TestService::execute(Message& message) {
 			onBoardConnection(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
+			break;
 	}
 }
 

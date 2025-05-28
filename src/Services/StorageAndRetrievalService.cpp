@@ -349,7 +349,7 @@ void StorageAndRetrievalService::packetStoreContentSummaryReport(Message& reques
 			report.appendString(packetStoreId);
 			createContentSummary(report, packetStoreId);
 		}
-		storeMessage(report);
+		storeMessage(report, report.data_size_message_);
 		return;
 	}
 	NumOfPacketStores numOfValidPacketStores = 0;
@@ -372,7 +372,7 @@ void StorageAndRetrievalService::packetStoreContentSummaryReport(Message& reques
 		report.appendString(packetStoreId);
 		createContentSummary(report, packetStoreId);
 	}
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void StorageAndRetrievalService::changeOpenRetrievalStartTimeTag(Message& request) {
@@ -503,7 +503,7 @@ void StorageAndRetrievalService::packetStoresStatusReport(const Message& request
 		report.appendEnum8(packetStore.second.openRetrievalStatus);
 		report.appendBoolean(packetStore.second.byTimeRangeRetrievalStatus);
 	}
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void StorageAndRetrievalService::createPacketStores(Message& request) {
@@ -625,7 +625,7 @@ void StorageAndRetrievalService::packetStoreConfigurationReport(const Message& r
 		report.append<PacketStoreType>(typeCode);
 		report.append<VirtualChannel>(packetStore.second.virtualChannel);
 	}
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void StorageAndRetrievalService::copyPacketsInTimeWindow(Message& request) {

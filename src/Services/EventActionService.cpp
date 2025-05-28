@@ -4,12 +4,12 @@
 #include "ECSS_Configuration.hpp"
 #ifdef SERVICE_EVENTACTION
 
+#include "EventActionService.hpp"
 #include "Message.hpp"
 #include "MessageParser.hpp"
-#include "EventActionService.hpp"
 
-EventActionService::EventActionDefinition::EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID,EventActionId actionID, const etl::array<uint8_t, ECSSFunctionMaxArgLength>& actionArgs)
-    : applicationID(applicationID), eventDefinitionID(eventDefinitionID),actionID(actionID), actionArgs(actionArgs) {
+EventActionService::EventActionDefinition::EventActionDefinition(ApplicationProcessId applicationID, EventDefinitionId eventDefinitionID, EventActionId actionID, const etl::array<uint8_t, ECSSFunctionMaxArgLength>& actionArgs)
+    : applicationID(applicationID), eventDefinitionID(eventDefinitionID), actionID(actionID), actionArgs(actionArgs) {
 }
 
 void EventActionService::addEventActionDefinitions(Message& message) {
@@ -28,7 +28,7 @@ void EventActionService::addEventActionDefinitions(Message& message) {
 		// Validate length doesn't exceed buffer size
 		if (argsLength > ECSSFunctionMaxArgLength) {
 			// Handle error case
-			ErrorHandler::reportInternalError(ErrorHandler::MessageTooLarge);
+			ErrorHandler::reportError(message, ErrorHandler::MessageTooLarge);
 			return;
 		}
 		etl::array<uint8_t, ECSSFunctionMaxArgLength> actionArgs = {};
@@ -180,7 +180,7 @@ void EventActionService::eventActionStatusReport() {
 		report.append<EventDefinitionId>(element.second.eventDefinitionID);
 		report.appendBoolean(element.second.enabled);
 	}
-	storeMessage(report);
+	storeMessage(report, report.data_size_message_);
 }
 
 void EventActionService::enableEventActionFunction(const Message& message) {
@@ -235,7 +235,7 @@ void EventActionService::execute(Message& message) {
 			disableEventActionFunction(message);
 			break;
 		default:
-			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
+			ErrorHandler::reportError(message, ErrorHandler::OtherMessageType);
 	}
 }
 

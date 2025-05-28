@@ -235,7 +235,7 @@ public:
 	 * on the provided list. Generates a TM[11,10] response.
 	 * @param listOfActivities Provide the list of activities that need to be reported on
 	 */
-	void timeBasedScheduleDetailReport(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities);
+	void timeBasedScheduleDetailReport(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities);
 
 	/**
 	 * @brief TC[11,9] detail-report activities identified by request identifier
