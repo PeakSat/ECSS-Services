@@ -16,14 +16,14 @@ void TimeBasedSchedulingService::storeScheduleTCList(const etl::list<ScheduledAc
 	}
 
 
-	for (const auto& entry : scheduledActivities) {
+	for (auto& entry : scheduledActivities) {
 		// Serialize entry to uint8_t buffer, to store it in memory
 		etl::array<uint8_t, MAX_ENTRY_SIZE> entryBuffer = {0};
 		uint16_t entryIndex = 0;
 
 		// Append Request to buffer
-		auto requestString = MessageParser::compose(entry.request);
-		memcpy(entryBuffer.data(), requestString.data(), requestString.size());
+		auto requestString = MessageParser::compose(entry.request, entry.request.data_size_message_);
+		memcpy(entryBuffer.data(), requestString.value().data(), requestString.value().size());
 		entryIndex = CCSDSMaxMessageSize; // Move iterator to end of available message space, to help with parsing
 
 		// Append requestID to buffer
