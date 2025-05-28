@@ -1,9 +1,11 @@
 #ifndef ECSS_SERVICES_MESSAGEPARSER_HPP
 #define ECSS_SERVICES_MESSAGEPARSER_HPP
+#include <etl/expected.h>
 
-#include <EventActionService.hpp>
+
+#include "ErrorDefinitions.hpp"
 #include "Message.hpp"
-#include "etl/array.h"
+
 /**
  * A generic class responsible for the execution and the parsing of the incoming telemetry and telecommand
  * packets
@@ -30,6 +32,9 @@
  * for the internal representation of all received Telemetry (TM) and Telecommands (TC) is the \ref Message class.
  */
 
+namespace CAN {
+	class TPMessage;
+}
 class MessageParser {
 public:
 	/**
@@ -49,7 +54,11 @@ public:
 	 * @param length The size of the message
 	 * @return A new object that represents the parsed message
 	 */
-	static Message parse(const uint8_t* data, uint32_t length);
+    static SpacecraftErrorCode parse(const uint8_t* data, uint32_t length, Message& message, bool error_reporting_active, bool parse_ccsds);
+
+
+
+
 
 	/**
 	 * Parse data that contains the ECSS packet header, without the CCSDS space packet header
@@ -58,14 +67,15 @@ public:
 	 * this great analysis:
 	 * stackoverflow.com/questions/15078638/can-i-turn-unsigned-char-into-char-and-vice-versa
 	 */
-	static Message parseECSSTC(String<ECSSTCRequestStringSize> data);
+
+    static SpacecraftErrorCode parseECSSTC(const uint8_t* data, Message& message);
 
 	/**
 	 * @brief Overloaded version of \ref MessageParser::parseECSSTC(String<ECSS_TC_REQUEST_STRING_SIZE> data)
 	 * @param data A uint8_t array of the TC packet data
 	 * @return Parsed message
 	 */
-	static Message parseECSSTC(const uint8_t* data);
+    static SpacecraftErrorCode parseECSSTC(String<ECSSTCRequestStringSize> data, Message& message);
 
 	/**
 	 * @brief Converts a TC or TM message to a message string, appending just the ECSS header
@@ -75,41 +85,45 @@ public:
 	 * error. Messages smaller than \p size are padded with zeros. When `size = 0`, there is no size limit.
 	 * @return A String class containing the parsed Message
 	 */
-	static String<CCSDSMaxMessageSize> composeECSS(const Message& message, uint16_t size = 0U); // Ignore-MISRA
+	static etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> composeECSS(Message& message,  uint16_t size);
 
 	/**
 	 * @brief Converts a TC or TM message to a packet string, appending the ECSS and then the CCSDS header
 	 * @param message The Message object to be parsed to a String
 	 * @return A String class containing the parsed Message
 	 */
-	static String<CCSDSMaxMessageSize> compose(const Message& message);
+    static etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> compose( Message& message, uint16_t size);
+
+
+    /**
+ * Parse the ECSS Telecommand packet secondary header
+ *
+ * As specified in section 7.4.4.1 of the standard
+ *
+ * @param data The data of the header (not null-terminated)
+ * @param length The size of the header
+ * @param message The Message to modify based on the header
+ */
+    static SpacecraftErrorCode parseECSSTCHeader(const uint8_t* data, Message& message);
+
+    /**
+ * Parse the ECSS Telemetry packet secondary header
+ *
+ * As specified in section 7.4.3.1 of the standard
+ *
+ * @param data The data of the header (not null-terminated)
+ * @param length The size of the header
+ * @param message The Message to modify based on the header
+ */
+    static SpacecraftErrorCode parseECSSTMHeader(const uint8_t* data, uint16_t length, Message& message);
+
 
 private:
 	/**
 	 * The number of bytes in the CRC field
 	 */
 	static constexpr CRCSize CRCField = 2U;
-	/**
-	 * Parse the ECSS Telecommand packet secondary header
-	 *
-	 * As specified in section 7.4.4.1 of the standard
-	 *
-	 * @param data The data of the header (not null-terminated)
-	 * @param length The size of the header
-	 * @param message The Message to modify based on the header
-	 */
-	static void parseECSSTCHeader(const uint8_t* data, uint16_t length, Message& message);
 
-	/**
-	 * Parse the ECSS Telemetry packet secondary header
-	 *
-	 * As specified in section 7.4.3.1 of the standard
-	 *
-	 * @param data The data of the header (not null-terminated)
-	 * @param length The size of the header
-	 * @param message The Message to modify based on the header
-	 */
-	static void parseECSSTMHeader(const uint8_t* data, uint16_t length, Message& message);
 };
 
 #endif // ECSS_SERVICES_MESSAGEPARSER_HPP

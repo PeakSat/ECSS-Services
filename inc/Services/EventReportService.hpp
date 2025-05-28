@@ -100,8 +100,12 @@ public:
         EPS_BatteryPackTempHighLimit = 9,
         EPS_BoardTempLowLimit = 10,
         EPS_BoardTempHighLimit = 11,
-        SafeModeEvent =12
-
+        SafeModeEvent =12,
+    	FailedToProcessPMON = 13,
+    	EPS_FunctionError = 14,
+    	OBDH_FunctionError = 15,
+    	MRAM_Error = 16,
+    	CAN_Failed = 17,
     };
 
     /**

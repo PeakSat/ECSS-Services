@@ -85,7 +85,7 @@ public:
 	 * info of the telecommand packet that failed to be accepted
 	 * @param errorCode The cause of creating this type of report
 	 */
-	void failAcceptanceVerification(const Message& request, ErrorHandler::AcceptanceErrorType errorCode);
+	void failAcceptanceVerification(const Message& request, SpacecraftErrorCode errorCode);
 
 	/**
 	 * TM[1,3] successful start of execution verification report
@@ -104,7 +104,7 @@ public:
 	 * of the telecommand packet that its start of execution has failed
 	 * @param errorCode The cause of creating this type of report
 	 */
-	void failStartExecutionVerification(const Message& request, ErrorHandler::ExecutionStartErrorType errorCode);
+	void failStartExecutionVerification(const Message& request,SpacecraftErrorCode errorCode);
 
 	/**
 	 * TM[1,5] successful progress of execution verification report
@@ -131,7 +131,7 @@ public:
 	 * @todo (#225) Each value,that the stepID is assigned, should be documented.
 	 * @todo (#226) error handling for undocumented assigned values to stepID
 	 */
-	void failProgressExecutionVerification(const Message& request, ErrorHandler::ExecutionProgressErrorType errorCode,
+	void failProgressExecutionVerification(const Message& request,SpacecraftErrorCode errorCode,
 	                                       StepId stepID);
 
 	/**
@@ -152,9 +152,6 @@ public:
 	 * @param errorCode The cause of creating this type of report
 	 */
 	void failCompletionExecutionVerification(const Message& request,
-	                                         ErrorHandler::ExecutionCompletionErrorType errorCode);
-
-	void failCompletionExecutionVerification(const Message& request,
 	                                         SpacecraftErrorCode errorCode);
 
 	/**
@@ -165,7 +162,7 @@ public:
 	 * telecommand packet that failed the routing
 	 * @param errorCode The cause of creating this type of report
  	 */
-	void failRoutingVerification(const Message& request, ErrorHandler::RoutingErrorType errorCode);
+	void failRoutingVerification(const Message& request, SpacecraftErrorCode errorCode);
 
 
 	/**
