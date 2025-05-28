@@ -230,7 +230,7 @@ void TimeBasedSchedulingService::timeBasedScheduleDetailReport(etl::list<Schedul
 
 	for (auto& activity: listOfActivities) {
 		report.appendUTCTimestamp(activity.requestReleaseTime); // todo (#267): Replace with the time parser
-		auto result = MessageParser::composeECSS(activity.request, activity.request.data_size_message_);
+		auto result = MessageParser::composeECSS(activity.request, activity.request.total_size_ecss_);
 		if (result.has_value()) {
 			report.appendString(result.value());
 		}
