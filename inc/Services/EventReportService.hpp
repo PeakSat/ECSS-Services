@@ -106,7 +106,9 @@ public:
     	OBDH_FunctionError = 15,
     	MRAM_Error = 16,
     	CAN_Failed = 17,
-    	ImageCaptured = 18
+    	ImageCaptured = 18,
+    	PayloadFaultMode = 19,
+    	PayloadRecovered = 20,
     };
 
     /**
