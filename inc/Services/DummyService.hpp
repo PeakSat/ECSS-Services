@@ -34,7 +34,7 @@ public:
 		Message log = createTM(MessageType::LogString);
 		log.appendString(data);
 		log.appendString(termination);
-		storeMessage(log);
+		storeMessage(log,log.data_size_message_);
 	}
 };
 
