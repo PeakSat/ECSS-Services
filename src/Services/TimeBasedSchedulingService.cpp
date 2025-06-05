@@ -2,6 +2,58 @@
 #ifdef SERVICE_TIMESCHEDULING
 
 #include "TimeBasedSchedulingService.hpp"
+#include "MemoryManager.hpp"
+
+constexpr uint16_t MAX_ENTRY_SIZE = CCSDSMaxMessageSize //	Max Message size
+									+ 6					//  RequestID size
+									+ 7;				//  UTC Timestamp size
+
+void TimeBasedSchedulingService::storeScheduleTCList(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
+	if (scheduledActivities.empty()) {
+		// Empty list
+		LOG_DEBUG<<"[SCHED TC] Attempted to store empty list";
+		return;
+	}
+
+
+	for (auto& entry : scheduledActivities) {
+		// Serialize entry to uint8_t buffer, to store it in memory
+		etl::array<uint8_t, MAX_ENTRY_SIZE> entryBuffer = {0};
+		uint16_t entryIndex = 0;
+
+		// Append Request to buffer
+		auto requestString = MessageParser::compose(entry.request, entry.request.data_size_message_);
+		memcpy(entryBuffer.data(), requestString.value().data(), requestString.value().size());
+		entryIndex = CCSDSMaxMessageSize; // Move iterator to end of available message space, to help with parsing
+
+		// Append requestID to buffer
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.applicationID >> 8);	// MSB
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.applicationID & 0xFF); // LSB
+
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.sequenceCount >> 8);	// MSB
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.sequenceCount & 0xFF); // LSB
+
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.sourceID >> 8);	// MSB
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestID.sourceID & 0xFF);	// LSB
+
+		// Append requestReleaseTime to buffer
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestReleaseTime.year >> 8);	// MSB
+		entryBuffer[entryIndex++] = static_cast<uint8_t>(entry.requestReleaseTime.year & 0xFF);	// LSB
+
+		entryBuffer[entryIndex++] = entry.requestReleaseTime.month;
+		entryBuffer[entryIndex++] = entry.requestReleaseTime.day;
+		entryBuffer[entryIndex++] = entry.requestReleaseTime.hour;
+		entryBuffer[entryIndex++] = entry.requestReleaseTime.minute;
+		entryBuffer[entryIndex++] = entry.requestReleaseTime.second;
+	}
+
+
+}
+
+void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
+
+}
+
 
 TimeBasedSchedulingService::TimeBasedSchedulingService() {
 	serviceType = TimeBasedSchedulingService::ServiceType;
@@ -178,7 +230,7 @@ void TimeBasedSchedulingService::timeBasedScheduleDetailReport(etl::list<Schedul
 
 	for (auto& activity: listOfActivities) {
 		report.appendUTCTimestamp(activity.requestReleaseTime); // todo (#267): Replace with the time parser
-		auto result = MessageParser::composeECSS(activity.request, activity.request.data_size_message_);
+		auto result = MessageParser::composeECSS(activity.request, activity.request.total_size_ecss_);
 		if (result.has_value()) {
 			report.appendString(result.value());
 		}
