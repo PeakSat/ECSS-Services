@@ -16,7 +16,7 @@ void TimeBasedSchedulingService::storeScheduleTCList(etl::list<ScheduledActivity
 	}
 
 	auto deleteStatus = MemoryManager::deleteFile(MemoryFilesystem::SCHED_TC_FILENAME);
-	if (deleteStatus!=Memory_Errno::NONE) {
+	if (deleteStatus!=Memory_Errno::NONE && deleteStatus!=Memory_Errno::FILE_DOES_NOT_EXIST ) {
 		// TODO Return <SEC>
 		MemoryManagerHelpers::printMemoryError(deleteStatus);
 		return;
@@ -73,7 +73,7 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 		return;
 	}
 	uint32_t iterations = _scheduledTCfileSize/MAX_ENTRY_SIZE;
-	if (iterations%MAX_ENTRY_SIZE!=0) {
+	if ((_scheduledTCfileSize%MAX_ENTRY_SIZE)!=0) {
 		LOG_ERROR<<"[TC_SCHEDULING] Error file size";
 		return;
 	}
@@ -90,7 +90,8 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 		}
 
 		ScheduledActivity entry = {};
-		auto parseError = MessageParser::parse(entryBuffer.begin(), CCSDSMaxMessageSize, entry.request, false, true); // TODO Ask about true, false flags
+		const uint16_t tcSize = static_cast<uint16_t>(entryBuffer.at(4U) << 8U) | static_cast<uint16_t>(entryBuffer.at(5U));
+		auto parseError = MessageParser::parse(entryBuffer.data(), tcSize, entry.request, false, true); // TODO Ask about true, false flags
 		if (parseError!=SpacecraftErrorCode::GENERIC_ERROR_NONE) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error parsing message";
 			return;
