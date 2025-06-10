@@ -1,8 +1,9 @@
 #include "ECSS_Configuration.hpp"
 #ifdef SERVICE_TIMESCHEDULING
 
-#include "TimeBasedSchedulingService.hpp"
 #include "MemoryManager.hpp"
+#include "TCHandlingTask.hpp"
+#include "TimeBasedSchedulingService.hpp"
 
 constexpr uint16_t MAX_ENTRY_SIZE = CCSDSMaxMessageSize //	Max Message size
 									+ 6					//  RequestID size
@@ -29,7 +30,7 @@ void TimeBasedSchedulingService::storeScheduleTCList(etl::list<ScheduledActivity
 		uint16_t entryIndex = 0;
 
 		// Append Request to buffer
-		auto requestString = MessageParser::compose(entry.request, entry.request.data_size_message_);
+		auto requestString = MessageParser::compose(entry.request, entry.request.data_size_message_ + ECSSSecondaryTCHeaderSize);
 		memcpy(entryBuffer.data(), requestString.value().data(), requestString.value().size());
 		entryIndex = CCSDSMaxMessageSize; // Move iterator to end of available message space, to help with parsing
 
@@ -91,7 +92,8 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 
 		ScheduledActivity entry = {};
 		const uint16_t tcSize = static_cast<uint16_t>(entryBuffer.at(4U) << 8U) | static_cast<uint16_t>(entryBuffer.at(5U));
-		auto parseError = MessageParser::parse(entryBuffer.data(), tcSize, entry.request, false, true); // TODO Ask about true, false flags
+		// +1 Comes from CCSDS protocol (Inside compose is -1), kati malakies
+		auto parseError = MessageParser::parse(entryBuffer.data(), tcSize + CCSDSPrimaryHeaderSize + 1, entry.request, false, true); // TODO Ask about true, false flags
 		if (parseError!=SpacecraftErrorCode::GENERIC_ERROR_NONE) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error parsing message";
 			return;
@@ -134,7 +136,12 @@ UTCTimestamp TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp c
 	recoverScheduleTCList(scheduledActivities); // TODO add error checking
 	if (currentTime >= scheduledActivities.front().requestReleaseTime && !scheduledActivities.empty()) {
 		if (scheduledActivities.front().requestID.applicationID == ApplicationId) {
-			MessageParser::execute(scheduledActivities.front().request);
+			auto status = tcHandlingTask->addToQueue(scheduledActivities.front().request, 10);
+			if (status == true) {
+				xTaskNotify(TCHandlingTask::tcHandlingTaskHandle, TASK_BIT_TC_HANDLING, eSetBits);
+			}else {
+				// TODO Add raise error? Discard all Schedule ?
+			}
 		}
 		scheduledActivities.pop_front();
 	}
@@ -197,7 +204,10 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 			etl::array<uint8_t, ECSSTCRequestStringSize> requestData = {0};
 			request.readString(requestData.data(), ECSSTCRequestStringSize);
 			Message receivedTCPacket;
+			receivedTCPacket.total_size_ecss_ = request.data_size_ecss_ + ECSSSecondaryTCHeaderSize;
+			receivedTCPacket.packet_type_ = Message::TC;
 			const auto res = MessageParser::parseECSSTC(requestData.data(), receivedTCPacket);
+			// TODO Add error checking
 			ScheduledActivity newActivity;
 
 			newActivity.request = receivedTCPacket;

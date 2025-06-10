@@ -52,7 +52,7 @@ private:
 	 * @details The schedule execution indicator will be updated by the process that is running
 	 * the time scheduling service.
 	 */
-	bool executionFunctionStatus = false;
+	bool executionFunctionStatus = true;
 
 	/**
 	 * @brief Request identifier of the received packet

@@ -115,10 +115,10 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
 
 	message = Message(0, 0, packet_type, APID);
 
-	if (packet_type == (Message::TM && (length < ECSSSecondaryTMHeaderSize))) {
+	if ( (packet_type == Message::TM) && (length < ECSSSecondaryTMHeaderSize)) {
 		return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
 	}
-	if (packet_type == (Message::TC && (length < ECSSSecondaryTCHeaderSize))) {
+	if ( (packet_type == Message::TC) && (length < ECSSSecondaryTCHeaderSize)) {
 		return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
 	}
 
