@@ -87,19 +87,13 @@ private:
 		UTCTimestamp requestReleaseTime{}; ///< Keep the command release time
 	};
 
-	/**
-	 * @brief Hold the scheduled activities
-	 *
-	 * @details The scheduled activities in this list are ordered by their release time, as the
-	 * standard requests.
-	 */
-	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-
-	/**
-	 *@brief Store the data to TC Handling file
-	 *
-	 */
-	void storeScheduleListToFile(etl::span<uint8_t> serialized_list);
+	// /**
+	//  * @brief Hold the scheduled activities
+	//  *
+	//  * @details The scheduled activities in this list are ordered by their release time, as the
+	//  * standard requests.
+	//  */
+	// etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
 
 	/**
 	 * @brief Sort the activities by their release time
@@ -147,7 +141,7 @@ public:
 		DetailReportAllScheduledActivities = 16,
 	};
 
-	void storeScheduleTCList(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
+	void storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
 
 	void recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
 
