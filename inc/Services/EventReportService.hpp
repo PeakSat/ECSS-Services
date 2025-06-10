@@ -120,6 +120,8 @@ public:
 		PayloadRecoveryFailed = 32,
 		PayloadUnknownEvent = 33,
 		PayloadUartError = 34,
+		ImageDownloaded = 35,
+
 	};
 
 	/**
