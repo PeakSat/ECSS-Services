@@ -141,9 +141,9 @@ public:
 		DetailReportAllScheduledActivities = 16,
 	};
 
-	void storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
+	SpacecraftErrorCode storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
 
-	void recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
+	SpacecraftErrorCode recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
 
 	/**
 	 * @brief Class constructor

@@ -5,22 +5,23 @@
 #include "TCHandlingTask.hpp"
 #include "TimeBasedSchedulingService.hpp"
 
+#include "ErrorMaps.hpp"
+
 constexpr uint16_t MAX_ENTRY_SIZE = CCSDSMaxMessageSize //	Max Message size
 									+ 6					//  RequestID size
 									+ 7;				//  UTC Timestamp size
 
-void TimeBasedSchedulingService::storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
+SpacecraftErrorCode TimeBasedSchedulingService::storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
 	if (activityList.empty()) {
 		// Empty list
-		LOG_DEBUG<<"[SCHED TC] Attempted to store empty list";
-		return;
+		LOG_ERROR<<"[TC_SCHEDULING] Attempted to store empty list";
+		return SpacecraftErrorCode::OBDH_ERROR_EMPTY_TC_SCHEDULE_LIST;
 	}
 
 	auto deleteStatus = MemoryManager::deleteFile(MemoryFilesystem::SCHED_TC_FILENAME);
 	if (deleteStatus!=Memory_Errno::NONE && deleteStatus!=Memory_Errno::FILE_DOES_NOT_EXIST ) {
-		// TODO Return <SEC>
-		MemoryManagerHelpers::printMemoryError(deleteStatus);
-		return;
+		LOG_ERROR<<"[TC_SCHEDULING] Error erasing old file";
+		return getSpacecraftErrorCodeFromMemoryError(deleteStatus);
 	}
 
 	uint16_t _activities_count = 0;
@@ -57,26 +58,31 @@ void TimeBasedSchedulingService::storeScheduleTCList(etl::list<ScheduledActivity
 		etl::span<const uint8_t> entryBufferSpan(entryBuffer);
 		auto status = MemoryManager::writeToFile(MemoryFilesystem::SCHED_TC_FILENAME, entryBufferSpan);
 		if (status!=Memory_Errno::NONE) {
-			// TODO Return <SEC>
-			MemoryManagerHelpers::printMemoryError(status);
-			return;
+			LOG_ERROR<<"[TC_SCHEDULING] Error writing scheduled tc file";
+			return getSpacecraftErrorCodeFromMemoryError(deleteStatus);
 		}
 		_activities_count++;
 	}
-	LOG_DEBUG<<"[TC_SCHEDULING] Stored "<<_activities_count<<" scheduled activities";
+	LOG_INFO<<"[TC_SCHEDULING] Stored "<<_activities_count<<" scheduled activities";
+	return SpacecraftErrorCode::GENERIC_ERROR_NONE;
 }
 
-void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
+SpacecraftErrorCode TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList) {
 	uint32_t _scheduledTCfileSize = 0;
 	auto status_file = MemoryManager::getFileSize(MemoryFilesystem::SCHED_TC_FILENAME, _scheduledTCfileSize);
-	if (status_file!=Memory_Errno::NONE || _scheduledTCfileSize==0) {
-		LOG_ERROR<<"[TC_SCHEDULING] Error recovering file";
-		return;
+	if (status_file!=Memory_Errno::NONE) {
+		LOG_ERROR<<"[TC_SCHEDULING] Error writing scheduled tc file";
+		return getSpacecraftErrorCodeFromMemoryError(status_file);
 	}
+	if (_scheduledTCfileSize==0) {
+		LOG_INFO<<"[TC_SCHEDULING] Empty scheduled tc file";
+		return SpacecraftErrorCode::GENERIC_ERROR_NONE;
+	}
+
 	uint32_t iterations = _scheduledTCfileSize/MAX_ENTRY_SIZE;
 	if ((_scheduledTCfileSize%MAX_ENTRY_SIZE)!=0) {
 		LOG_ERROR<<"[TC_SCHEDULING] Error file size";
-		return;
+		return SpacecraftErrorCode::OBDH_ERROR_CORRUPTED_TC_SCHEDULE_FILE;
 	}
 	for (int i=0;i<iterations;i++) {
 		// Serial buffer, to read entry from memory
@@ -85,9 +91,13 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 		uint16_t entryIndex = 0;
 		uint16_t _read_count = 0;
 		auto readStatus = MemoryManager::readFromFile(MemoryFilesystem::SCHED_TC_FILENAME, entryBufferSpan, i*MAX_ENTRY_SIZE, _read_count);
-		if (readStatus!=Memory_Errno::NONE || _read_count!=MAX_ENTRY_SIZE) {
+		if (readStatus!=Memory_Errno::NONE) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error reading from file";
-			return;
+			return getSpacecraftErrorCodeFromMemoryError(readStatus);
+		}
+		if (_read_count!=MAX_ENTRY_SIZE) {
+			LOG_ERROR<<"[TC_SCHEDULING] Error read unexpected size from file";
+			return SpacecraftErrorCode::OBDH_ERROR_CORRUPTED_TC_SCHEDULE_FILE;
 		}
 
 		ScheduledActivity entry = {};
@@ -96,7 +106,7 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 		auto parseError = MessageParser::parse(entryBuffer.data(), tcSize + CCSDSPrimaryHeaderSize + 1, entry.request, false, true); // TODO Ask about true, false flags
 		if (parseError!=SpacecraftErrorCode::GENERIC_ERROR_NONE) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error parsing message";
-			return;
+			return parseError;
 		}
 		entryIndex = CCSDSMaxMessageSize;
 		entry.requestID.applicationID = (static_cast<uint16_t>(entryBuffer[entryIndex++])<<8 | entryBuffer[entryIndex++]);
@@ -111,7 +121,7 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 
 		if ((activityList.available() == 0)) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error Activity list full";
-			return;
+			return SpacecraftErrorCode::OBDH_ERROR_OVERFLOW_TC_SCHEDULE_LIST;
 		}
 		activityList.push_back(entry);
 	}
@@ -119,12 +129,12 @@ void TimeBasedSchedulingService::recoverScheduleTCList(etl::list<ScheduledActivi
 	// Delete file after reading
 	auto deleteStatus = MemoryManager::deleteFile(MemoryFilesystem::SCHED_TC_FILENAME);
 	if (deleteStatus!=Memory_Errno::NONE) {
-		// TODO Return <SEC>
-		MemoryManagerHelpers::printMemoryError(deleteStatus);
-		return;
+		LOG_ERROR<<"[TC_SCHEDULING] Error erasing old file";
+		return getSpacecraftErrorCodeFromMemoryError(deleteStatus);
 	}
 
-	LOG_DEBUG<<"[TC_SCHEDULING] Recovered "<<iterations<<" scheduled activities";
+	LOG_INFO<<"[TC_SCHEDULING] Recovered "<<iterations<<" scheduled activities";
+	return SpacecraftErrorCode::GENERIC_ERROR_NONE;
 }
 
 TimeBasedSchedulingService::TimeBasedSchedulingService() {
@@ -133,21 +143,30 @@ TimeBasedSchedulingService::TimeBasedSchedulingService() {
 
 UTCTimestamp TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp currentTime) {
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	auto recoverStatus = recoverScheduleTCList(scheduledActivities);
+	if (recoverStatus != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return {9999, 12, 31, 23, 59, 59};
+	}
+
 	if (currentTime >= scheduledActivities.front().requestReleaseTime && !scheduledActivities.empty()) {
 		if (scheduledActivities.front().requestID.applicationID == ApplicationId) {
 			auto status = tcHandlingTask->addToQueue(scheduledActivities.front().request, 10);
 			if (status == true) {
 				xTaskNotify(TCHandlingTask::tcHandlingTaskHandle, TASK_BIT_TC_HANDLING, eSetBits);
 			}else {
-				// TODO Add raise error? Discard all Schedule ?
+				LOG_ERROR<<"[TC_SCHEDULING] Failed to add activity to TC Handling queue";
 			}
 		}
 		scheduledActivities.pop_front();
 	}
 
 	if (!scheduledActivities.empty()) {
-		storeScheduleTCList(scheduledActivities); // TODO add error checking
+		auto storeStatus = storeScheduleTCList(scheduledActivities);
+		if (storeStatus != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+			// Reason for failure is printed inside the function
+			return {9999, 12, 31, 23, 59, 59};
+		}
 		return scheduledActivities.front().requestReleaseTime;
 	}
 	return {9999, 12, 31, 23, 59, 59};
@@ -174,11 +193,8 @@ void TimeBasedSchedulingService::resetSchedule(const Message& request) {
 	executionFunctionStatus = false;
 	auto deleteStatus = MemoryManager::deleteFile(MemoryFilesystem::SCHED_TC_FILENAME);
 	if (deleteStatus!=Memory_Errno::NONE) {
-		// TODO Return <SEC>
-		MemoryManagerHelpers::printMemoryError(deleteStatus);
-		return;
+		ErrorHandler::reportError(request, deleteStatus);
 	}
-	// todo (#264): Add resetting for sub-schedules and groups, if defined
 }
 
 
@@ -188,18 +204,20 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 	}
 
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
-	// todo (#228): Get the sub-schedule ID if they are implemented
 	uint16_t iterationCount = request.readUint16();
 	while (iterationCount-- != 0) {
-		// todo (#229): Get the group ID first, if groups are used
 		const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
-
 		const UTCTimestamp releaseTime(request.readUTCTimestamp());
+
 		if ((scheduledActivities.available() == 0) || (releaseTime < (currentTime + ECSSTimeMarginForActivation))) {
+			LOG_ERROR<<"[TC_SCHEDULING] Rejected scheduled TC";
 			ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
-			request.skipBytes(ECSSTCRequestStringSize);
+			// request.skipBytes(ECSSTCRequestStringSize);
 		} else {
 			etl::array<uint8_t, ECSSTCRequestStringSize> requestData = {0};
 			request.readString(requestData.data(), ECSSTCRequestStringSize);
@@ -207,7 +225,10 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 			receivedTCPacket.total_size_ecss_ = request.data_size_ecss_ + ECSSSecondaryTCHeaderSize;
 			receivedTCPacket.packet_type_ = Message::TC;
 			const auto res = MessageParser::parseECSSTC(requestData.data(), receivedTCPacket);
-			// TODO Add error checking
+			if (res != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+				LOG_ERROR<<"[TC_SCHEDULING] Error parsing TC <SEC>: "<<res;
+				continue;
+			}
 			ScheduledActivity newActivity;
 
 			newActivity.request = receivedTCPacket;
@@ -221,7 +242,10 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 		}
 	}
 	sortActivitiesReleaseTime(scheduledActivities);
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	if (storeScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 	notifyNewActivityAddition();
 }
 
@@ -230,7 +254,10 @@ void TimeBasedSchedulingService::timeShiftAllActivities(Message& request) {
 		return;
 	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
 	const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 
@@ -239,17 +266,17 @@ void TimeBasedSchedulingService::timeShiftAllActivities(Message& request) {
 	                        [](ScheduledActivity const& leftSide, ScheduledActivity const& rightSide) {
 		                        return leftSide.requestReleaseTime < rightSide.requestReleaseTime;
 	                        });
-	// todo (#267): Define what the time format is going to be
+
 	const Time::RelativeTime relativeOffset = request.readRelativeTime();
 	if ((releaseTimes.first->requestReleaseTime + std::chrono::seconds(relativeOffset)) < (currentTime + ECSSTimeMarginForActivation)) {
-		// Todo Check if we should store the activities list here
+		LOG_ERROR<<"[TC_SCHEDULING] Time shift failed, new release time out of bounds";
 		ErrorHandler::reportError(request, ErrorHandler::SubServiceExecutionStartError);
 		return;
 	}
 	for (auto& activity: scheduledActivities) {
 		activity.requestReleaseTime += std::chrono::seconds(relativeOffset);
 	}
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
@@ -257,7 +284,10 @@ void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
 		return;
 	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
 	const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 
@@ -277,6 +307,7 @@ void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
 		if (requestIDMatch != scheduledActivities.end()) {
 			if ((requestIDMatch->requestReleaseTime + relativeOffset) <
 			    (currentTime + ECSSTimeMarginForActivation)) {
+				LOG_ERROR<<"[TC_SCHEDULING] Time shift failed, new release time out of bounds";
 				ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 			} else {
 				requestIDMatch->requestReleaseTime += relativeOffset;
@@ -286,7 +317,7 @@ void TimeBasedSchedulingService::timeShiftActivitiesByID(Message& request) {
 		}
 	}
 	sortActivitiesReleaseTime(scheduledActivities);
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::deleteActivitiesByID(Message& request) {
@@ -294,7 +325,11 @@ void TimeBasedSchedulingService::deleteActivitiesByID(Message& request) {
 		return;
 	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
 	uint16_t iterationCount = request.readUint16();
 	while (iterationCount-- != 0) {
@@ -311,10 +346,11 @@ void TimeBasedSchedulingService::deleteActivitiesByID(Message& request) {
 		if (requestIDMatch != scheduledActivities.end()) {
 			scheduledActivities.erase(requestIDMatch);
 		} else {
+			LOG_ERROR<<"[TC_SCHEDULING] Failed to delete activity";
 			ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 		}
 	}
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::detailReportAllActivities(const Message& request) {
@@ -322,15 +358,18 @@ void TimeBasedSchedulingService::detailReportAllActivities(const Message& reques
 		return;
 	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
 	timeBasedScheduleDetailReport(scheduledActivities);
 
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::timeBasedScheduleDetailReport(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities) {
-	// todo (#228): (#229) append sub-schedule and group ID if they are defined
 	Message report = createTM(TimeBasedSchedulingService::MessageType::TimeBasedScheduleReportById);
 	report.appendUint16(static_cast<uint16_t>(listOfActivities.size()));
 
@@ -350,7 +389,10 @@ void TimeBasedSchedulingService::detailReportActivitiesByID(Message& request) {
 		return;
 	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> matchedActivities;
 
@@ -369,13 +411,14 @@ void TimeBasedSchedulingService::detailReportActivitiesByID(Message& request) {
 		if (requestIDMatch != scheduledActivities.end()) {
 			matchedActivities.push_back(*requestIDMatch);
 		} else {
+			LOG_ERROR<<"[TC_SCHEDULING] Failed to generate activity detailed report";
 			ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 		}
 	}
 
 	sortActivitiesReleaseTime(matchedActivities);
 	timeBasedScheduleDetailReport(matchedActivities);
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::summaryReportActivitiesByID(Message& request) {
@@ -384,7 +427,10 @@ void TimeBasedSchedulingService::summaryReportActivitiesByID(Message& request) {
 	}
 
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
-	recoverScheduleTCList(scheduledActivities); // TODO add error checking
+	if (recoverScheduleTCList(scheduledActivities) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
 	etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> matchedActivities;
 
 	uint16_t iterationCount = request.readUint16();
@@ -402,21 +448,20 @@ void TimeBasedSchedulingService::summaryReportActivitiesByID(Message& request) {
 		if (requestIDMatch != scheduledActivities.end()) {
 			matchedActivities.push_back(*requestIDMatch);
 		} else {
+			LOG_ERROR<<"[TC_SCHEDULING] Failed to generate activity summary report";
 			ErrorHandler::reportError(request, ErrorHandler::InstructionExecutionStartError);
 		}
 	}
 	sortActivitiesReleaseTime(matchedActivities);
 	timeBasedScheduleSummaryReport(matchedActivities);
-	storeScheduleTCList(scheduledActivities); // TODO add error checking
+	storeScheduleTCList(scheduledActivities);
 }
 
 void TimeBasedSchedulingService::timeBasedScheduleSummaryReport(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities) {
 	Message report = createTM(TimeBasedSchedulingService::MessageType::TimeBasedScheduledSummaryReport);
 
-	// todo (#228): append sub-schedule and group ID if they are defined
 	report.appendUint16(static_cast<uint16_t>(listOfActivities.size()));
 	for (const auto& match: listOfActivities) {
-		// todo (#229): append sub-schedule and group ID if they are defined
 		report.appendUTCTimestamp(match.requestReleaseTime);
 		report.append<SourceId>(match.requestID.sourceID);
 		report.append<ApplicationProcessId>(match.requestID.applicationID);
@@ -437,7 +482,7 @@ void TimeBasedSchedulingService::execute(Message& message) {
 			resetSchedule(message);
 			break;
 		case InsertActivities:
-			// insertActivities(message);
+			insertActivities(message);
 			break;
 		case DeleteActivitiesById:
 			deleteActivitiesByID(message);
