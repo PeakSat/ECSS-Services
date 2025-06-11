@@ -90,11 +90,12 @@ SpacecraftErrorCode TimeBasedSchedulingService::recoverScheduleTCList(etl::list<
 		etl::span<uint8_t> entryBufferSpan(entryBuffer);
 		uint16_t entryIndex = 0;
 		uint16_t _read_count = 0;
-		auto readStatus = MemoryManager::readFromFile(MemoryFilesystem::SCHED_TC_FILENAME, entryBufferSpan, i*MAX_ENTRY_SIZE, _read_count);
-		if (readStatus!=Memory_Errno::NONE) {
-			LOG_ERROR<<"[TC_SCHEDULING] Error reading from file";
-			return getSpacecraftErrorCodeFromMemoryError(readStatus);
-		}
+		return getSpacecraftErrorCodeFromMemoryError(Memory_Errno::UNKNOWN_ERROR);
+		// auto readStatus = MemoryManager::readFromFile(MemoryFilesystem::SCHED_TC_FILENAME, entryBufferSpan, i*MAX_ENTRY_SIZE, _read_count);
+		// if (readStatus!=Memory_Errno::NONE) {
+		// 	LOG_ERROR<<"[TC_SCHEDULING] Error reading from file";
+		// 	return getSpacecraftErrorCodeFromMemoryError(readStatus);
+		// }
 		if (_read_count!=MAX_ENTRY_SIZE) {
 			LOG_ERROR<<"[TC_SCHEDULING] Error read unexpected size from file";
 			return SpacecraftErrorCode::OBDH_ERROR_CORRUPTED_TC_SCHEDULE_FILE;
