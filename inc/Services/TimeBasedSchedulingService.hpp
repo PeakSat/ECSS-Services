@@ -54,6 +54,9 @@ private:
 	 */
 	bool executionFunctionStatus = false;
 
+	uint16_t _tc_execution_margin_ms = 3000;
+
+
 	static constexpr int16_t MAX_ENTRY_SIZE = CCSDSMaxMessageSize //	Max Message size
 									+ 6					//  RequestID size
 									+ 7					//  UTC Timestamp size
@@ -166,8 +169,6 @@ private:
      */
 	void notifyNewActivityAddition();
 
-	void initEsotericVariables();
-
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 11;
 
@@ -194,9 +195,13 @@ public:
 
 	/**
 	 * This function executes the next activity and removes it from the list.
-	 * @return the requestReleaseTime of next activity to be executed after this time
 	 */
-	UTCTimestamp executeScheduledActivity(UTCTimestamp currentTime);
+	void executeScheduledActivity(UTCTimestamp currentTime);
+
+	/**
+	 * @return the requestReleaseTime of next activity to be executed
+	 */
+	UTCTimestamp getNextScheduledActivityTimestamp(UTCTimestamp currentTime);
 
 	/**
 	 * @brief TC[11,1] enable the time-based schedule execution function
@@ -221,7 +226,7 @@ public:
 	 * activities.
 	 * @param request Provide the received message as a parameter
 	 */
-	void resetSchedule(const Message& request);
+	void resetSchedule();
 
 	/**
 	 * @brief TC[11,4] insert activities into the time based schedule
@@ -297,6 +302,10 @@ public:
 	static SpacecraftErrorCode storeScheduledActivity(ScheduledActivity activity, const uint8_t id);
 
 	static SpacecraftErrorCode recoverScheduledActivity(ScheduledActivity& activity, const uint8_t id);
+
+	void initEsotericVariables();
+
+	bool isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
 
 };
 
