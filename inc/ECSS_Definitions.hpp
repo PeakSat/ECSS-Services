@@ -3,6 +3,8 @@
 
 #include <chrono>
 #include <cstdint>
+
+#include "FilesystemDefinitions.hpp"
 /**
  * @defgroup ECSSDefinitions ECSS Defined Constants
  *
@@ -58,6 +60,7 @@ inline constexpr uint16_t ECSSMaxStringSize = 256U;
  * This is used by the Message::appendString() and Message::readString() functions
  */
 inline constexpr uint16_t ECSSMaxFixedOctetStringSize = 256U - 2U;
+static_assert(ECSSMaxFixedOctetStringSize % (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1)==0 , "ECSSMaxFixedOctetStringSize must be a multiply of MRAM_DATA_BLOCK_SIZE");
 
 /**
  * The total number of different message types that can be handled by this project
