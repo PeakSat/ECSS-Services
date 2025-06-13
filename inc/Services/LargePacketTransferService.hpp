@@ -3,8 +3,7 @@
 
 #include <etl/String.hpp>
 
-#include "ErrorMaps.hpp"
-#include "FilesystemDefinitions.hpp"
+#include "ServicePool.hpp"
 #include "Service.hpp"
 
 /**
@@ -21,7 +20,7 @@ class LargePacketTransferService : public Service {
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 13;
 
-	static constexpr uint8_t UplinkMaximumLargePacketsSize = 400U; // todo revisit
+	static constexpr uint16_t UplinkMaximumLargePacketsSize = 400U; // todo revisit
 	static constexpr uint8_t UplinkMaximumPartSize = ECSSMaxFixedOctetStringSize;
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
 
@@ -143,7 +142,7 @@ private:
 	 * @return true if successful, false otherwise
 	 */
 	template <typename T>
-	bool getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+	static bool getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 		auto result = MemoryManager::getParameter(paramId, value);
 		if (!result.has_value()) {
 			Services.requestVerification.failAcceptanceVerification(
@@ -162,7 +161,7 @@ private:
 	 * @return true if successful, false otherwise
 	 */
 	template <typename T>
-	bool setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+	static bool setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 		auto result = MemoryManager::setParameter(paramId, value);
 		if (!result.has_value()) {
 			Services.requestVerification.failAcceptanceVerification(
@@ -178,7 +177,7 @@ private:
 	 * @param currentSequence The current sequence number to validate
 	 * @return true if sequence is valid, false otherwise
 	 */
-	bool validateSequenceNumber(Message& message, uint16_t currentSequence);
+	static bool validateSequenceNumber(Message& message, uint16_t currentSequence);
 
 	/**
 	 * Helper function to reset transfer parameters
