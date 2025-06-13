@@ -101,7 +101,7 @@ inline constexpr uint8_t ECSSTCRequestStringSize = 64;
  * The maximum number of activities that can be in the time-based schedule
  * @see TimeBasedSchedulingService
  */
-inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 4;
+inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 20;
 
 /**
  * @brief Time margin used in the time based command scheduling service ST[11]
@@ -109,7 +109,7 @@ inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 4;
  * have in order
  * @see TimeBasedSchedulingService
  */
-inline constexpr std::chrono::duration<uint8_t> ECSSTimeMarginForActivation(20);
+inline constexpr std::chrono::duration<uint8_t> ECSSTimeMarginForActivation(60);
 
 /**
  * @brief Maximum size of an event's auxiliary data

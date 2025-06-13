@@ -52,7 +52,32 @@ private:
 	 * @details The schedule execution indicator will be updated by the process that is running
 	 * the time scheduling service.
 	 */
-	bool executionFunctionStatus = true;
+	bool executionFunctionStatus = false;
+
+	uint16_t _tc_execution_margin_ms = 3000;
+
+
+	static constexpr int16_t MAX_ENTRY_SIZE = CCSDSMaxMessageSize //	Max Message size
+									+ 6					//  RequestID size
+									+ 7					//  UTC Timestamp size
+									+ 87;				//  Padding to match exactly 9 MRAM blocks
+
+	static constexpr uint16_t MRAM_BLOCKS_PER_ACTIVITY = MAX_ENTRY_SIZE / (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1);
+	static_assert(MRAM_BLOCKS_PER_ACTIVITY%(MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1) != 0, "Should be a multiple of 127" );
+
+	enum class Activity_State: uint8_t {
+		invalid = 0,
+		waiting = 1,
+	};
+
+	typedef struct {
+		uint8_t id = 0;  // Id in the MRAM storage area
+		UTCTimestamp timestamp;
+		Activity_State state = Activity_State::invalid;
+	}ActivityEntry;
+
+	static constexpr uint32_t activitiesEntriesArraySize = 9 * ECSSMaxNumberOfTimeSchedActivities;
+	static constexpr uint32_t MRAM_BLOCKS_OFFSET_ACTIVITIES_LIST = 2;
 
 	/**
 	 * @brief Request identifier of the received packet
@@ -87,13 +112,19 @@ private:
 		UTCTimestamp requestReleaseTime{}; ///< Keep the command release time
 	};
 
-	// /**
-	//  * @brief Hold the scheduled activities
-	//  *
-	//  * @details The scheduled activities in this list are ordered by their release time, as the
-	//  * standard requests.
-	//  */
-	// etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities> scheduledActivities;
+
+	static bool isEarlier(const UTCTimestamp& a, const UTCTimestamp& b) {
+		if (a.year != b.year) return a.year < b.year;
+		if (a.month != b.month) return a.month < b.month;
+		if (a.day != b.day) return a.day < b.day;
+		if (a.hour != b.hour) return a.hour < b.hour;
+		if (a.minute != b.minute) return a.minute < b.minute;
+		return a.second < b.second;
+	}
+
+	static bool isValidScheduled(const ActivityEntry& entry) {
+		return entry.state == Activity_State::waiting;
+	}
 
 	/**
 	 * @brief Sort the activities by their release time
@@ -101,12 +132,27 @@ private:
 	 * @details The ECSS standard requires that the activities are sorted in the TM message
 	 * response. Also it is better to have the activities sorted.
 	 */
-	inline static void
-	sortActivitiesReleaseTime(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& schedActivities) {
-		schedActivities.sort([](ScheduledActivity const& leftSide, ScheduledActivity const& rightSide) {
-			// cppcheck-suppress
-			return leftSide.requestReleaseTime < rightSide.requestReleaseTime;
-		});
+	static void sortActivityEntries(ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities]) {
+		// Step 1: Partition valid (waiting) vs others
+		int validCount = 0;
+
+		for (int i = 0; i < ECSSMaxNumberOfTimeSchedActivities; ++i) {
+			if (isValidScheduled(entries[i])) {
+				if (i != validCount) {
+					std::swap(entries[i], entries[validCount]);
+				}
+				++validCount;
+			}
+		}
+
+		// Step 2: Sort only the valid part by timestamp
+		for (int i = 0; i < validCount - 1; ++i) {
+			for (int j = i + 1; j < validCount; ++j) {
+				if (isEarlier(entries[j].timestamp, entries[i].timestamp)) {
+					std::swap(entries[i], entries[j]);
+				}
+			}
+		}
 	}
 
 	/**
@@ -141,10 +187,6 @@ public:
 		DetailReportAllScheduledActivities = 16,
 	};
 
-	SpacecraftErrorCode storeScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
-
-	SpacecraftErrorCode recoverScheduleTCList(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& activityList);
-
 	/**
 	 * @brief Class constructor
 	 * @details Initializes the serviceType
@@ -153,9 +195,13 @@ public:
 
 	/**
 	 * This function executes the next activity and removes it from the list.
-	 * @return the requestReleaseTime of next activity to be executed after this time
 	 */
-	UTCTimestamp executeScheduledActivity(UTCTimestamp currentTime);
+	void executeScheduledActivity(UTCTimestamp currentTime);
+
+	/**
+	 * @return the requestReleaseTime of next activity to be executed
+	 */
+	UTCTimestamp getNextScheduledActivityTimestamp(UTCTimestamp currentTime);
 
 	/**
 	 * @brief TC[11,1] enable the time-based schedule execution function
@@ -180,7 +226,7 @@ public:
 	 * activities.
 	 * @param request Provide the received message as a parameter
 	 */
-	void resetSchedule(const Message& request);
+	void resetSchedule();
 
 	/**
 	 * @brief TC[11,4] insert activities into the time based schedule
@@ -229,34 +275,7 @@ public:
 	 * on the provided list. Generates a TM[11,10] response.
 	 * @param listOfActivities Provide the list of activities that need to be reported on
 	 */
-	void timeBasedScheduleDetailReport(etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities);
-
-	/**
-	 * @brief TC[11,9] detail-report activities identified by request identifier
-	 *
-	 * @details Send a detailed report about the status of the requested activities, based on the
-	 * provided request identifier. Generates a TM[11,10] response. The matched activities are
-	 * contained in the report, in an ascending order based on their release time.
-	 * @param request Provide the received message as a parameter
-	 * @todo (#233) Replace time parsing with the time parser
-	 * @throws ExecutionStartError If a requested activity, identified by the provided
-	 * request identifier is not found in the schedule issue an @ref
-	 * ErrorHandler::ExecutionStartErrorType for that instruction.
-	 */
-	void detailReportActivitiesByID(Message& request);
-
-	/**
-	 * @brief TC[11,12] summary-report activities identified by request identifier
-	 *
-	 * @details Send a summary report about the status of the requested activities. Generates a
-	 * TM[11,13] response, with activities ordered in an ascending order, based on their release
-	 * time.
-	 * @param request Provide the received message as a parameter
-	 * @throws ExecutionStartError If a requested activity, identified by the provided
-	 * request identifier is not found in the schedule issue an @ref
-	 * ErrorHandler::ExecutionStartErrorType for that instruction.
-	 */
-	void summaryReportActivitiesByID(Message& request);
+	void timeBasedScheduleDetailReport();
 
 	/**
 	 * @brief TM[11,13] time-based schedule summary report
@@ -265,32 +284,7 @@ public:
 	 * on the provided list. Generates a TM[11,13] response.
 	 * @param listOfActivities Provide the list of activities that need to be reported on
 	 */
-	void timeBasedScheduleSummaryReport(const etl::list<ScheduledActivity, ECSSMaxNumberOfTimeSchedActivities>& listOfActivities);
-
-	/**
-	 * @brief TC[11,5] delete time-based scheduled activities identified by a request identifier
-	 *
-	 * @details Delete certain activities by using the unique request identifier.
-	 * @param request Provide the received message as a parameter
-	 * @throws ExecutionStartError If a requested activity, identified by the provided
-	 * request identifier is not found in the schedule issue an @ref
-	 * ErrorHandler::ExecutionStartErrorType for that instruction.
-	 */
-	void deleteActivitiesByID(Message& request);
-
-	/**
-	 * @brief TC[11,7] time-shift scheduled activities identified by a request identifier
-	 *
-	 * @details Time-shift certain activities by using the unique request identifier
-	 * @param request Provide the received message as a parameter
-	 * @todo (#234) Definition of the time format is required
-	 * @throws ExecutionStartError If the requested time offset is less than the earliest
-	 * time from the currently scheduled activities plus the @ref ECSS_TIME_MARGIN_FOR_ACTIVATION,
-	 * then the request is rejected and an @ref ErrorHandler::ExecutionStartErrorType is issued.
-	 * Also if an activity with a specified request identifier is not found, generate a failed
-	 * start of execution for that specific instruction.
-	 */
-	void timeShiftActivitiesByID(Message& request);
+	void timeBasedScheduleSummaryReport();
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet
@@ -300,6 +294,19 @@ public:
 	 * @param message Contains the necessary parameters to call the suitable subservice
 	 */
 	void execute(Message& message);
+
+	static SpacecraftErrorCode readActivityEntries(ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities]);
+
+	static SpacecraftErrorCode storeActivityEntries(ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities]);
+
+	static SpacecraftErrorCode storeScheduledActivity(ScheduledActivity activity, const uint8_t id);
+
+	static SpacecraftErrorCode recoverScheduledActivity(ScheduledActivity& activity, const uint8_t id);
+
+	void initEsotericVariables();
+
+	bool isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
+
 };
 
 #endif // ECSS_SERVICES_TIMEBASEDSCHEDULINGSERVICE_HPP
