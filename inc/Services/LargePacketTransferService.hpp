@@ -24,7 +24,7 @@ public:
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
 	static constexpr uint8_t MAX_FILE_NAME = 10U;
 
-	static String<MAX_FILE_NAME> localFilename;
+	String<MAX_FILE_NAME> localFilename{""};
 
 	enum MessageType : uint8_t {
 		FirstDownlinkPartReport = 1,
@@ -86,20 +86,20 @@ public:
 	 * TC[13,9] Function that handles the first part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	static void firstUplinkPart(Message& message);
+	 void firstUplinkPart(Message& message);
 
 	/**
 	 * TC[13,10] Function that handles the n-2 parts of the n-part uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	static void
-	intermediateUplinkPart(Message& message);
+	 void intermediateUplinkPart(Message& message);
 
 	/**
 	 * TC[13,11] Function that handles the last part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	static void lastUplinkPart(Message& message);
+	 void lastUplinkPart(Message& message);
+
 
 	/**
 	 * Function that splits large messages

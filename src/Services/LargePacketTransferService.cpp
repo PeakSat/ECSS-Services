@@ -13,7 +13,6 @@
 
 static_assert(ECSSMaxFixedOctetStringSize%(MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1)==0, "ECSSMaxFixedOctetStringSize must be a multiple of MRAM_DATA_BLOCK_SIZE");
 
-
 template <typename T>
  bool LargePacketTransferService::getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 	auto result = MemoryManager::getParameter(paramId, value);
@@ -25,14 +24,6 @@ template <typename T>
 	return true;
 }
 
-/**
- * Template helper function to set a parameter in memory with error handling
- * @tparam T The type of parameter to set
- * @param message The message context for error reporting
- * @param paramId The parameter ID to set
- * @param value Pointer to the value to set
- * @return true if successful, false otherwise
- */
 template <typename T>
  bool LargePacketTransferService::setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 	auto result = MemoryManager::setParameter(paramId, value);
@@ -161,7 +152,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
 	message.readOctetString(dataArray.data());
-	etl::span<const uint8_t> DataSpan(dataArray.begin(), dataArray.end());
+	etl::span<const uint8_t> DataSpan(dataArray);
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
 		return;
@@ -206,9 +197,30 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	const uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
 	message.readOctetString(dataArray.data());
+	etl::span<const uint8_t> DataSpan(dataArray);
+
+	if (!validateSequenceNumber(message, sequenceNumber)) {
+		return;
+	}
 
 	uint32_t storedCount = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &storedCount)) {
+		return;
+	}
+
+	const uint32_t offset = (ECSSMaxFixedOctetStringSize / (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U)) *
+							(storedCount + static_cast<uint32_t>(sequenceNumber));
+
+	const auto resMramWriteFile = MemoryManager::writeToMramFileAtOffset(
+		localFilename.data(), DataSpan, offset);
+
+	if (resMramWriteFile != Memory_Errno::NONE) {
+		Services.requestVerification.failAcceptanceVerification(
+			message, getSpacecraftErrorCodeFromMemoryError(resMramWriteFile));
+		return;
+	}
+
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
 		return;
 	}
 
@@ -232,6 +244,8 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
+
+
 
 void LargePacketTransferService::split(const Message& message, const LargeMessageTransactionId largeMessageTransactionIdentifier) const {
 	uint16_t const size = message.data_size_message_;
