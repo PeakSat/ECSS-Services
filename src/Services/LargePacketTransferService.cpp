@@ -14,7 +14,7 @@
 static_assert(ECSSMaxFixedOctetStringSize%(MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1)==0, "ECSSMaxFixedOctetStringSize must be a multiple of MRAM_DATA_BLOCK_SIZE");
 
 template <typename T>
- bool LargePacketTransferService::getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+ bool LargePacketTransferService::getMemoryParameter(Message& message,  ParameterId paramId, T* value) {
 	auto result = MemoryManager::getParameter(paramId, value);
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
@@ -25,7 +25,7 @@ template <typename T>
 }
 
 template <typename T>
- bool LargePacketTransferService::setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+ bool LargePacketTransferService::setMemoryParameter(Message& message,  ParameterId paramId, T* value) {
 	auto result = MemoryManager::setParameter(paramId, value);
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
@@ -194,7 +194,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 		return;
 	}
 
-	const uint16_t sequenceNumber = message.read<PartSequenceNum>();
+	uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
 	message.readOctetString(dataArray.data());
 	etl::span<const uint8_t> DataSpan(dataArray);
