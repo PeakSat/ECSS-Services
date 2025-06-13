@@ -11,7 +11,7 @@
 
 #include "ServicePool.hpp"
 
-// static_assert()
+static_assert(ECSSMaxFixedOctetStringSize%(MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1)==0, "ECSSMaxFixedOctetStringSize must be a multiple of MRAM_DATA_BLOCK_SIZE");
 
 
 template <typename T>
