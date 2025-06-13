@@ -59,7 +59,7 @@ public:
 	 * @param string The data contained in this part of the large packet
 	 */
 	void firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                             const String<ECSSMaxFixedOctetStringSize>& string);
+	                             const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	/**
 	 * TM[13,2] Function that handles the n-2 parts of tbe n-part download report
@@ -68,7 +68,7 @@ public:
 	 * @param string The data contained in this part of the large packet
 	 */
 	void intermediateDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                                    const String<ECSSMaxFixedOctetStringSize>& string);
+	                                    const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	/**
 	 * TM[13,3] Function that handles the last part of the download report
@@ -77,7 +77,7 @@ public:
 	 * @param string The data contained in this part of the large packet
 	 */
 	void lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-	                            const String<ECSSMaxFixedOctetStringSize>& string);
+	                            const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	// The three uplink functions should handle a TC request to "upload" data. Since there is not
 	// a composeECSS function ready, I just return the given string.
@@ -106,14 +106,34 @@ public:
 	 * @param message that is exceeds the standards and has to be split down
 	 * @param largeMessageTransactionIdentifier that is a value we assign to this splitting of the large message
 	 */
-	void split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier);
+	void split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) const;
 
 	static bool isValidUpLinkIdentifier(UplinkLargeMessageTransactionIdentifiers id);
 
 	void execute(Message& message);
 
 private:
-	// ... existing private members ...
+	/**
+	 * Template helper function to get a parameter from memory with error handling
+	 * @tparam T The type of parameter to retrieve
+	 * @param message The message context for error reporting
+	 * @param paramId The parameter ID to retrieve
+	 * @param value Pointer to store the retrieved value
+	 * @return true if successful, false otherwise
+	 */
+	template <typename T>
+	static bool getMemoryParameter(Message& message, ParameterId paramId, T* value);
+
+	/**
+ 	 * Template helper function to set a parameter in memory with error handling
+ 	 * @tparam T The type of parameter to set
+ 	 * @param message The message context for error reporting
+ 	 * @param paramId The parameter ID to set
+ 	 * @param value Pointer to the value to set
+ 	 * @return true if successful, false otherwise
+ 	 */
+	template <typename T>
+	static bool setMemoryParameter(Message& message, ParameterId paramId, T* value);
 
 	/**
 	 * Helper function to validate uplink message type and extract transaction ID

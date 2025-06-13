@@ -11,16 +11,11 @@
 
 #include "ServicePool.hpp"
 
-/**
-	 * Template helper function to get a parameter from memory with error handling
-	 * @tparam T The type of parameter to retrieve
-	 * @param message The message context for error reporting
-	 * @param paramId The parameter ID to retrieve
-	 * @param value Pointer to store the retrieved value
-	 * @return true if successful, false otherwise
-	 */
+// static_assert()
+
+
 template <typename T>
-static bool getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+ bool LargePacketTransferService::getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 	auto result = MemoryManager::getParameter(paramId, value);
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
@@ -39,7 +34,7 @@ static bool getMemoryParameter(Message& message, const ParameterId paramId, T* v
  * @return true if successful, false otherwise
  */
 template <typename T>
-static bool setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+ bool LargePacketTransferService::setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
 	auto result = MemoryManager::setParameter(paramId, value);
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
@@ -50,9 +45,9 @@ static bool setMemoryParameter(Message& message, const ParameterId paramId, T* v
 }
 
 
-void LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
-                                                         PartSequenceNum partSequenceNumber,
-                                                         const String<ECSSMaxFixedOctetStringSize>& string) {
+void LargePacketTransferService::firstDownlinkPartReport(const LargeMessageTransactionId largeMessageTransactionIdentifier,
+                                                         const PartSequenceNum partSequenceNumber,
+                                                         const String<ECSSMaxFixedOctetStringSize>& string) const {
 	Message report = createTM(LargePacketTransferService::MessageType::FirstDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
 	report.append<PartSequenceNum>(partSequenceNumber);                          // part sequence number
@@ -61,8 +56,8 @@ void LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransaction
 }
 
 void LargePacketTransferService::intermediateDownlinkPartReport(
-    LargeMessageTransactionId largeMessageTransactionIdentifier, PartSequenceNum partSequenceNumber,
-    const String<ECSSMaxFixedOctetStringSize>& string) {
+    const LargeMessageTransactionId largeMessageTransactionIdentifier, const PartSequenceNum partSequenceNumber,
+    const String<ECSSMaxFixedOctetStringSize>& string) const {
 
 	Message report = createTM(LargePacketTransferService::MessageType::IntermediateDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
@@ -73,7 +68,7 @@ void LargePacketTransferService::intermediateDownlinkPartReport(
 
 void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
                                                         PartSequenceNum partSequenceNumber,
-                                                        const String<ECSSMaxFixedOctetStringSize>& string) {
+                                                        const String<ECSSMaxFixedOctetStringSize>& string) const {
 	Message report = createTM(LargePacketTransferService::MessageType::LastDownlinkPartReport);
 	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier); // large message transaction identifier
 	report.append<PartSequenceNum>(partSequenceNumber);                          // part sequence number
@@ -105,8 +100,8 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	message.readOctetString(dataArray.data());
 
 	// Extract filename safely
-	etl::string<MemoryFilesystem::MAX_FILENAME> filename_sized;
-	constexpr size_t copySize = std::min(static_cast<size_t>(MemoryFilesystem::MAX_FILENAME),
+	etl::string<MemoryFilesystem::MAX_FILENAME> filename_sized{};
+	const size_t copySize = std::min(static_cast<size_t>(MemoryFilesystem::MAX_FILENAME),
 									dataArray.size());
 	filename_sized.assign(dataArray.begin(), dataArray.begin() + copySize);
 
@@ -114,7 +109,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	constexpr size_t SIZE_OFFSET = 10U;
 	constexpr size_t REQUIRED_SIZE = 14U; // Need at least 14 bytes
 
-	if constexpr (dataArray.size() < REQUIRED_SIZE) {
+	if (dataArray.size() < REQUIRED_SIZE) {
 		Services.requestVerification.failAcceptanceVerification(
 			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
@@ -238,7 +233,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
 
-void LargePacketTransferService::split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) {
+void LargePacketTransferService::split(const Message& message, const LargeMessageTransactionId largeMessageTransactionIdentifier) const {
 	uint16_t const size = message.data_size_message_;
 	uint16_t positionCounter = 0;
 	uint16_t const parts = (size / ECSSMaxFixedOctetStringSize) + 1;
@@ -272,9 +267,9 @@ void LargePacketTransferService::split(const Message& message, LargeMessageTrans
 	lastDownlinkPartReport(largeMessageTransactionIdentifier, (parts - 1U), stringPart);
 }
 
-bool LargePacketTransferService::validateUplinkMessage(Message& message, LargePacketTransferService::MessageType expectedType,
+bool LargePacketTransferService::validateUplinkMessage(Message& message, const LargePacketTransferService::MessageType expectedType,
                                                        LargeMessageTransactionId& transactionId) {
-	if (!message.assertTC(message.serviceType, expectedType)) {
+	if (!message.assertTC(ServiceType, expectedType)) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
