@@ -3,7 +3,6 @@
 
 #include <etl/String.hpp>
 
-#include "ServicePool.hpp"
 #include "Service.hpp"
 
 /**
@@ -23,8 +22,9 @@ public:
 	static constexpr uint16_t UplinkMaximumLargePacketsSize = 400U; // todo revisit
 	static constexpr uint8_t UplinkMaximumPartSize = ECSSMaxFixedOctetStringSize;
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
+	static constexpr uint8_t MAX_FILE_NAME = 10U;
 
-	static String<MemoryFilesystem::MAX_FILENAME> localFilename;
+	static String<MAX_FILE_NAME> localFilename;
 
 	enum MessageType : uint8_t {
 		FirstDownlinkPartReport = 1,
@@ -133,43 +133,6 @@ private:
 	 */
 	static bool validateStoredTransactionId(const Message& message, LargeMessageTransactionId expectedId);
 
-	/**
-	 * Template helper function to get a parameter from memory with error handling
-	 * @tparam T The type of parameter to retrieve
-	 * @param message The message context for error reporting
-	 * @param paramId The parameter ID to retrieve
-	 * @param value Pointer to store the retrieved value
-	 * @return true if successful, false otherwise
-	 */
-	template <typename T>
-	static bool getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
-		auto result = MemoryManager::getParameter(paramId, value);
-		if (!result.has_value()) {
-			Services.requestVerification.failAcceptanceVerification(
-			    message, getSpacecraftErrorCodeFromMemoryError(result.error()));
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Template helper function to set a parameter in memory with error handling
-	 * @tparam T The type of parameter to set
-	 * @param message The message context for error reporting
-	 * @param paramId The parameter ID to set
-	 * @param value Pointer to the value to set
-	 * @return true if successful, false otherwise
-	 */
-	template <typename T>
-	static bool setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
-		auto result = MemoryManager::setParameter(paramId, value);
-		if (!result.has_value()) {
-			Services.requestVerification.failAcceptanceVerification(
-			    message, getSpacecraftErrorCodeFromMemoryError(result.error()));
-			return false;
-		}
-		return true;
-	}
 
 	/**
 	 * Helper function to validate sequence number continuity

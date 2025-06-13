@@ -5,10 +5,50 @@
 #include <etl/String.hpp>
 
 #include "ErrorMaps.hpp"
-#include "MemoryManager.hpp"
+#include "HelperFunctions.hpp"
 #include "Message.hpp"
 #include "PMON_Handlers.hpp"
+
 #include "ServicePool.hpp"
+
+/**
+	 * Template helper function to get a parameter from memory with error handling
+	 * @tparam T The type of parameter to retrieve
+	 * @param message The message context for error reporting
+	 * @param paramId The parameter ID to retrieve
+	 * @param value Pointer to store the retrieved value
+	 * @return true if successful, false otherwise
+	 */
+template <typename T>
+static bool getMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+	auto result = MemoryManager::getParameter(paramId, value);
+	if (!result.has_value()) {
+		Services.requestVerification.failAcceptanceVerification(
+			message, getSpacecraftErrorCodeFromMemoryError(result.error()));
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Template helper function to set a parameter in memory with error handling
+ * @tparam T The type of parameter to set
+ * @param message The message context for error reporting
+ * @param paramId The parameter ID to set
+ * @param value Pointer to the value to set
+ * @return true if successful, false otherwise
+ */
+template <typename T>
+static bool setMemoryParameter(Message& message, const ParameterId paramId, T* value) {
+	auto result = MemoryManager::setParameter(paramId, value);
+	if (!result.has_value()) {
+		Services.requestVerification.failAcceptanceVerification(
+			message, getSpacecraftErrorCodeFromMemoryError(result.error()));
+		return false;
+	}
+	return true;
+}
+
 
 void LargePacketTransferService::firstDownlinkPartReport(LargeMessageTransactionId largeMessageTransactionIdentifier,
                                                          PartSequenceNum partSequenceNumber,
@@ -43,58 +83,72 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 
 
 void LargePacketTransferService::firstUplinkPart(Message& message) {
-    LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
+	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
 
-    if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
-        return;
-    }
+	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
+		return;
+	}
 
-    if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID,
-                           static_cast<void*>(&largeMessageTransactionIdentifier))) {
-        return;
-    }
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID,
+	                                         static_cast<void*>(&largeMessageTransactionIdentifier))) {
+		return;
+	}
 
-    PartSequenceNum partSequenceNumber = message.read<PartSequenceNum>();
-    if (partSequenceNumber != 0U) {
-        Services.requestVerification.failAcceptanceVerification(
-            message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-        return;
-    }
+	PartSequenceNum partSequenceNumber = message.read<PartSequenceNum>();
+	if (partSequenceNumber != 0U) {
+		Services.requestVerification.failAcceptanceVerification(
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
 
-    const auto dataString = message.read<String<ECSSMaxFixedOctetStringSize>>();
-    etl::string<MemoryFilesystem::MAX_FILENAME> filename_sized;
-    size_t copySize = std::min(static_cast<size_t>(MemoryFilesystem::MAX_FILENAME), dataString.size());
-    filename_sized.assign(dataString.begin(), dataString.begin() + copySize);
+	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
+	message.readOctetString(dataArray.data());
 
-    auto size = static_cast<uint32_t>(dataString[10]) |
-                (static_cast<uint32_t>(dataString[11]) << 8) |
-                (static_cast<uint32_t>(dataString[12]) << 16) |
-                (static_cast<uint32_t>(dataString[13]) << 24);
+	// Extract filename safely
+	etl::string<MemoryFilesystem::MAX_FILENAME> filename_sized;
+	constexpr size_t copySize = std::min(static_cast<size_t>(MemoryFilesystem::MAX_FILENAME),
+									dataArray.size());
+	filename_sized.assign(dataArray.begin(), dataArray.begin() + copySize);
 
-    PMON_Handlers::raiseMRAMErrorEvent(
-        MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_UPLINK_SIZE_ID, &size));
+	// Extract size with bounds checking
+	constexpr size_t SIZE_OFFSET = 10U;
+	constexpr size_t REQUIRED_SIZE = 14U; // Need at least 14 bytes
+
+	if constexpr (dataArray.size() < REQUIRED_SIZE) {
+		Services.requestVerification.failAcceptanceVerification(
+			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
+
+	auto size = static_cast<uint32_t>(dataArray[10]) |
+				(static_cast<uint32_t>(dataArray[11]) << 8) |
+				(static_cast<uint32_t>(dataArray[12]) << 16) |
+				(static_cast<uint32_t>(dataArray[13]) << 24);
+
+	PMON_Handlers::raiseMRAMErrorEvent(
+	    MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_UPLINK_SIZE_ID, &size));
 
 	if (auto validateFile = MemoryManagerHelpers::getFileTransferIdFromFilename(filename_sized.data()); validateFile != largeMessageTransactionIdentifier) {
-        resetTransferParameters();
-        Services.requestVerification.failAcceptanceVerification(
-            message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-        return;
-    }
+		resetTransferParameters();
+		Services.requestVerification.failAcceptanceVerification(
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
 
-    if (filename_sized.size() >= MemoryFilesystem::MAX_FILENAME) {
-        Services.requestVerification.failAcceptanceVerification(
-            message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-        return;
-    }
+	if (filename_sized.size() >= MemoryFilesystem::MAX_FILENAME) {
+		Services.requestVerification.failAcceptanceVerification(
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
 
-    if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &partSequenceNumber)) {
-        return;
-    }
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &partSequenceNumber)) {
+		return;
+	}
 
-    localFilename.clear();
-    localFilename.assign(filename_sized.begin(), filename_sized.end());
+	localFilename.clear();
+	localFilename.assign(filename_sized.begin(), filename_sized.end());
 	// todo start timer
-    Services.requestVerification.successAcceptanceVerification(message);
+	Services.requestVerification.successAcceptanceVerification(message);
 }
 
 
@@ -110,8 +164,9 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
-	const auto dataString = message.read<String<ECSSMaxFixedOctetStringSize>>();
-	etl::span<const uint8_t> DataSpan(dataString.begin(), dataString.end());
+	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
+	message.readOctetString(dataArray.data());
+	etl::span<const uint8_t> DataSpan(dataArray.begin(), dataArray.end());
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
 		return;
@@ -123,14 +178,14 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 
 	const uint32_t offset = (ECSSMaxFixedOctetStringSize / (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U)) *
-	                  (storedCount + static_cast<uint32_t>(sequenceNumber));
+	                        (storedCount + static_cast<uint32_t>(sequenceNumber));
 
 	const auto resMramWriteFile = MemoryManager::writeToMramFileAtOffset(
-		localFilename.data(), DataSpan, offset);
+	    localFilename.data(), DataSpan, offset);
 
 	if (resMramWriteFile != Memory_Errno::NONE) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, getSpacecraftErrorCodeFromMemoryError(resMramWriteFile));
+		    message, getSpacecraftErrorCodeFromMemoryError(resMramWriteFile));
 		return;
 	}
 
@@ -154,7 +209,8 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	}
 
 	const uint16_t sequenceNumber = message.read<PartSequenceNum>();
-	const auto dataString = message.read<String<ECSSMaxFixedOctetStringSize>>();
+	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
+	message.readOctetString(dataArray.data());
 
 	uint32_t storedCount = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &storedCount)) {
@@ -167,8 +223,8 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	}
 
 	const uint32_t calculatedSize = (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U) *
-							 (storedCount + static_cast<uint32_t>(sequenceNumber)) *
-							 ECSSMaxFixedOctetStringSize;
+	                                (storedCount + static_cast<uint32_t>(sequenceNumber)) *
+	                                ECSSMaxFixedOctetStringSize;
 
 	if (storedSize != calculatedSize) {
 		// report back - implementation specific
@@ -178,7 +234,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &resetSequenceNumber)) {
 		return;
 	}
-    
+
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
 
@@ -217,17 +273,17 @@ void LargePacketTransferService::split(const Message& message, LargeMessageTrans
 }
 
 bool LargePacketTransferService::validateUplinkMessage(Message& message, LargePacketTransferService::MessageType expectedType,
-							 LargeMessageTransactionId& transactionId) {
+                                                       LargeMessageTransactionId& transactionId) {
 	if (!message.assertTC(message.serviceType, expectedType)) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
 	transactionId = message.read<LargeMessageTransactionId>();
 	if (!isValidUpLinkIdentifier(static_cast<UplinkLargeMessageTransactionIdentifiers>(transactionId))) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
@@ -236,17 +292,17 @@ bool LargePacketTransferService::validateUplinkMessage(Message& message, LargePa
 bool LargePacketTransferService::validateStoredTransactionId(const Message& message, const LargeMessageTransactionId expectedId) {
 	uint16_t storedId = 0xFFFF;
 	auto resStoredId = MemoryManager::getParameter(
-		PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID, &storedId);
+	    PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID, &storedId);
 
 	if (!resStoredId.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, getSpacecraftErrorCodeFromMemoryError(resStoredId.error()));
+		    message, getSpacecraftErrorCodeFromMemoryError(resStoredId.error()));
 		return false;
 	}
 
 	if (storedId != expectedId) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
@@ -256,13 +312,13 @@ bool LargePacketTransferService::validateStoredTransactionId(const Message& mess
 bool LargePacketTransferService::validateSequenceNumber(Message& message, const uint16_t currentSequence) {
 	uint32_t storedSequenceNum = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID,
-						   &storedSequenceNum)) {
+	                                         &storedSequenceNum)) {
 		return false;
-						   }
+	}
 
 	if (storedSequenceNum + 1 != currentSequence) {
 		Services.requestVerification.failAcceptanceVerification(
-			message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
@@ -272,8 +328,8 @@ bool LargePacketTransferService::validateSequenceNumber(Message& message, const 
 void LargePacketTransferService::resetTransferParameters() {
 	uint32_t reset = 0U;
 	PMON_Handlers::raiseMRAMErrorEvent(
-		MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID,
-								  static_cast<void*>(&reset)));
+	    MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID,
+	                                static_cast<void*>(&reset)));
 }
 
 bool LargePacketTransferService::isValidUpLinkIdentifier(const UplinkLargeMessageTransactionIdentifiers id) {
