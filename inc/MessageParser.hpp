@@ -56,10 +56,6 @@ public:
 	 */
     static SpacecraftErrorCode parse(const uint8_t* data, uint32_t length, Message& message, bool error_reporting_active, bool parse_ccsds);
 
-
-
-
-
 	/**
 	 * Parse data that contains the ECSS packet header, without the CCSDS space packet header
 	 *
