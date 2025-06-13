@@ -62,7 +62,7 @@ void MessageParser::execute(Message& message) { //cppcheck-suppress[constParamet
 
 #ifdef SERVICE_TEST
 		case TestService::ServiceType:
-			Services.testService.execute(message);
+			Services.testService.exec20040ute(message);
 			break;
 #endif
 
