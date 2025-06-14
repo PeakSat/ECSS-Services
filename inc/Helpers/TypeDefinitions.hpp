@@ -2,7 +2,7 @@
 #include <cstdint>
 
 using StepId = uint8_t;
-using ParameterReportStructureId = uint8_t;
+using ParameterReportStructureId = uint16_t;
 using EventDefinitionId = uint16_t;
 using EventActionId = uint16_t;
 using ParameterId = uint16_t;
