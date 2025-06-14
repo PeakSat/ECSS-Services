@@ -60,6 +60,9 @@ protected:
 	Service() = default;
 
 public:
+
+	inline static uint32_t _housekeeping_bitflag = 4;
+
 	/**
 	 * @brief Unimplemented copy constructor
 	 *
