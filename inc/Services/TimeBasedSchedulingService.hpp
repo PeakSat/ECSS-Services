@@ -226,7 +226,7 @@ public:
 	 * activities.
 	 * @param request Provide the received message as a parameter
 	 */
-	void resetSchedule();
+	void resetSchedule(const Message& request);
 
 	/**
 	 * @brief TC[11,4] insert activities into the time based schedule
@@ -306,6 +306,10 @@ public:
 	void initEsotericVariables();
 
 	bool isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
+
+	bool isServiceActive() const {
+		return executionFunctionStatus;
+	};
 
 };
 

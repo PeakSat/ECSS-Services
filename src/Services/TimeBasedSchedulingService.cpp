@@ -6,6 +6,7 @@
 #include "TimeBasedSchedulingService.hpp"
 
 #include "ErrorMaps.hpp"
+#include "TimeBasedSchedulingTask.hpp"
 
 
 SpacecraftErrorCode TimeBasedSchedulingService::readActivityEntries(ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities]) {
@@ -231,6 +232,8 @@ void TimeBasedSchedulingService::enableScheduleExecution(const Message& request)
 		return;
 	}
 	executionFunctionStatus = true;
+	uint8_t _active_tc_schedule = 1;
+	MemoryManager::setParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_tc_schedule));
 }
 
 void TimeBasedSchedulingService::disableScheduleExecution(const Message& request) {
@@ -238,17 +241,16 @@ void TimeBasedSchedulingService::disableScheduleExecution(const Message& request
 		return;
 	}
 	executionFunctionStatus = false;
+	uint8_t _active_tc_schedule = 0;
+	MemoryManager::setParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_tc_schedule));
 }
 
-void TimeBasedSchedulingService::resetSchedule() {
-	// if (!request.assertTC(ServiceType, MessageType::ResetTimeBasedSchedule)) {
-	// 	return;
-	// }
-	executionFunctionStatus = false;
-	uint8_t _active_id = 0;
+void TimeBasedSchedulingService::resetSchedule(const Message& request) {
+	if (!request.assertTC(ServiceType, MessageType::ResetTimeBasedSchedule)) {
+		return;
+	}
 	uint8_t _valid_tc_schedule = 0;
 
-	MemoryManager::setParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_id));
 	ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities] = {0};
 	for (int i=0; i<ECSSMaxNumberOfTimeSchedActivities;i++) {
 		entries[i].id = i;
@@ -403,7 +405,7 @@ void TimeBasedSchedulingService::execute(Message& message) {
 			disableScheduleExecution(message);
 			break;
 		case ResetTimeBasedSchedule:
-			resetSchedule();
+			resetSchedule(message);
 			break;
 		case InsertActivities:
 			insertActivities(message);
