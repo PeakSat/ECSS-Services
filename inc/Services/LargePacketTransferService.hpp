@@ -24,7 +24,7 @@ public:
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
 	static constexpr uint8_t MAX_FILE_NAME = 10U;
 
-	String<MAX_FILE_NAME> localFilename{""};
+	char localFilename[MAX_FILE_NAME]{};
 
 	enum MessageType : uint8_t {
 		FirstDownlinkPartReport = 1,
@@ -37,7 +37,7 @@ public:
 	};
 
 	enum class UplinkLargeMessageTransactionIdentifiers : uint16_t {
-		AtlasMcuFirmware = 70U,
+		AtlasMcuFirmware = 256U,
 		AtlasSoftCpuFirmware = 80U,
 		AtlasBitStream = 90U,
 		ScheduledTC = 130U,
@@ -99,14 +99,6 @@ public:
 	 * @param string This will change when these function will be modified
 	 */
 	 void lastUplinkPart(Message& message);
-
-
-	/**
-	 * Function that splits large messages
-	 * @param message that is exceeds the standards and has to be split down
-	 * @param largeMessageTransactionIdentifier that is a value we assign to this splitting of the large message
-	 */
-	void split(const Message& message, LargeMessageTransactionId largeMessageTransactionIdentifier) const;
 
 	static bool isValidUpLinkIdentifier(UplinkLargeMessageTransactionIdentifiers id);
 
