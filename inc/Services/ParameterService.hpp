@@ -51,8 +51,12 @@ public:
 	 * @return True if there is a reference to a parameter with the given ID, False otherwise
 	 */
 	static bool parameterExists(ParameterId parameterId) {
-		// TODO Add parameter Upper lower limit check
-		return true;
+		for (int i=0; i < PeakSatParameters::parametersArraySize;i++) {
+			if (PeakSatParameters::allParameterIds[i] == parameterId) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 
