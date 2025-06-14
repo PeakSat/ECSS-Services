@@ -68,7 +68,7 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 }
 
 
-void LargePacketTransferService::firstUplinkPart(Message& message) {
+void LargePacketTransferService::firstUplinkPart(Message& message) const {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
 
 	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
@@ -87,61 +87,55 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 		return;
 	}
 
-	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
-	message.readString(dataArray.data(), ECSSMaxFixedOctetStringSize);
-
-	// Extract filename safely
-	char filename_sized[MemoryFilesystem::MAX_FILENAME]={0};
-	const size_t copySize = std::min(static_cast<size_t>(MemoryFilesystem::MAX_FILENAME),
-	                                 dataArray.size());
-
-
-	for (size_t i = 0; i < copySize; i++) {
-		filename_sized[i] = dataArray[i];
-	}
-
-	// Extract size with bounds checking
-	constexpr size_t SIZE_OFFSET = 10U;
-	constexpr size_t REQUIRED_SIZE = 14U; // Need at least 14 bytes
-
-	if (dataArray.size() < REQUIRED_SIZE) {
+	// Validate we have enough data remaining for the payload
+	constexpr size_t REQUIRED_SIZE = 14U; // filename (10 bytes) + size (4 bytes)
+	if (message.readPosition + REQUIRED_SIZE > message.data_size_message_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
 	}
 
-	auto size = static_cast<uint32_t>(dataArray[10] << 24) |
-	            (static_cast<uint32_t>(dataArray[11]) << 16) |
-	            (static_cast<uint32_t>(dataArray[12]) << 8) |
-	            (static_cast<uint32_t>(dataArray[13]));
+	// Create a span for the payload data
+	etl::span<const uint8_t> payloadSpan(message.data.begin() + message.readPosition, REQUIRED_SIZE);
 
-	PMON_Handlers::raiseMRAMErrorEvent(
-	    MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_UPLINK_SIZE_ID, &size));
+	// Extract filename using ETL
+	etl::array<char, MemoryFilesystem::MAX_FILENAME> filename_sized{};
+	constexpr size_t FILENAME_SIZE = 10U;
+	constexpr size_t copySize = etl::min(FILENAME_SIZE, filename_sized.size());
 
-	if (auto validateFile = MemoryManagerHelpers::getFileTransferIdFromFilename(filename_sized); validateFile != largeMessageTransactionIdentifier) {
+	etl::copy_n(payloadSpan.begin(), copySize, filename_sized.begin());
+	message.readPosition += FILENAME_SIZE;
+
+	// Extract size using ETL byte operations (big-endian)
+	const uint32_t size = (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE]) << 24) |
+	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
+	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
+	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
+	message.readPosition += 4;
+
+	// Store the file size
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_UPLINK_SIZE_ID, &size)) {
+		return;
+	}
+
+	// Validate filename matches transaction ID
+	auto validateFile = MemoryManagerHelpers::getFileTransferIdFromFilename(filename_sized.data());
+	if (validateFile != largeMessageTransactionIdentifier) {
 		resetTransferParameters();
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
 	}
 
-	if (sizeof(filename_sized) > MemoryFilesystem::MAX_FILENAME) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		LOG_DEBUG<<"-------ERROR 6";
-
-		return;
-	}
-
+	// Store part sequence number
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &partSequenceNumber)) {
-		LOG_DEBUG<<"-------ERROR 7";
-
 		return;
 	}
 
-	memcpy(localFilename, filename_sized, MemoryFilesystem::MAX_FILENAME);
-	// localFilename = filename_sized;
-	// todo start timer
+	// Store filename for later use using ETL
+	etl::copy(filename_sized.begin(), filename_sized.end(), localFilename);
+
+	// TODO: start timer
 	Services.requestVerification.successAcceptanceVerification(message);
 }
 
@@ -152,12 +146,17 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	if (!validateUplinkMessage(message, MessageType::IntermediateUplinkPartReport, largeMessageTransactionIdentifier)) {
 		return;
 	}
-	uint16_t sequenceNumber = message.read<PartSequenceNum>()+1;
-	// etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
-	// // message.readOctetString(dataArray.data()); // todo unsafe
-	// // message.read
-	etl::span<const uint8_t> DataSpan(message.data.begin()+message.readPosition, ECSSMaxFixedOctetStringSize);
+	uint16_t sequenceNumber = message.read<PartSequenceNum>() + 1;
 
+	// Validate remaining data
+	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_message_) {
+		Services.requestVerification.failAcceptanceVerification(
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
+
+	// safely create the span
+	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
 	if (!validateSequenceNumber(message, sequenceNumber)) {
 		return;
 	}
@@ -171,7 +170,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	                        (storedCount + static_cast<uint32_t>(sequenceNumber));
 
 	const auto resMramWriteFile = MemoryManager::writeToMramFileAtOffset(
-	    localFilename, DataSpan, offset);
+	    localFilename.data(), DataSpan, offset);
 
 	if (resMramWriteFile != Memory_Errno::NONE) {
 		Services.requestVerification.failAcceptanceVerification(
@@ -203,13 +202,15 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	}
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
-	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
-	// // message.readOctetString(dataArray.data());
-	// etl::copy_n(message.data.data(), ECSSMaxFixedOctetStringSize, dataArray.data());
-	//
-	// etl::span<const uint8_t> DataSpan(dataArray);
+	// Validate remaining data
+	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_message_) {
+		Services.requestVerification.failAcceptanceVerification(
+		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		return;
+	}
 
-	etl::span<const uint8_t> DataSpan(message.data.begin()+message.readPosition, ECSSMaxFixedOctetStringSize);
+	// safely create the span
+	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
 
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
@@ -225,7 +226,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	                        (storedCount + static_cast<uint32_t>(sequenceNumber));
 
 	const auto resMramWriteFile = MemoryManager::writeToMramFileAtOffset(
-	    localFilename, DataSpan, offset);
+	    localFilename.data(), DataSpan, offset);
 
 	if (resMramWriteFile != Memory_Errno::NONE) {
 		Services.requestVerification.failAcceptanceVerification(

@@ -24,8 +24,7 @@ public:
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
 	static constexpr uint8_t MAX_FILE_NAME = 10U;
 
-	char localFilename[MAX_FILE_NAME]{};
-
+	etl::array<char, MAX_FILE_NAME> localFilename{};
 	enum MessageType : uint8_t {
 		FirstDownlinkPartReport = 1,
 		IntermediateDownlinkPartReport = 2,
@@ -86,7 +85,7 @@ public:
 	 * TC[13,9] Function that handles the first part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	 void firstUplinkPart(Message& message);
+	 void firstUplinkPart(Message& message) const;
 
 	/**
 	 * TC[13,10] Function that handles the n-2 parts of the n-part uplink request
