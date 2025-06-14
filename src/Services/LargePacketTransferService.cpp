@@ -134,7 +134,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 		return;
 	}
 
-	if (sizeof(filename_sized) >= MemoryFilesystem::MAX_FILENAME) {
+	if (sizeof(filename_sized) > MemoryFilesystem::MAX_FILENAME) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		LOG_DEBUG<<"-------ERROR 6";
@@ -143,7 +143,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	}
 
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &partSequenceNumber)) {
-		LOG_DEBUG<<"-------ERROR 6";
+		LOG_DEBUG<<"-------ERROR 7";
 
 		return;
 	}
@@ -162,11 +162,9 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 		return;
 	}
 
-	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
-		return;
-	}
 
-	uint16_t sequenceNumber = message.read<PartSequenceNum>();
+
+	uint16_t sequenceNumber = message.read<PartSequenceNum>()+1;
 	etl::array<uint8_t, ECSSMaxFixedOctetStringSize> dataArray{};
 	message.readOctetString(dataArray.data()); // todo unsafe
 	etl::span<const uint8_t> DataSpan(dataArray);
@@ -193,6 +191,10 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
+		return;
+	}
+
+	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
 		return;
 	}
 
@@ -286,14 +288,14 @@ bool LargePacketTransferService::validateStoredTransactionId(const Message& mess
 	    PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID, &storedId);
 
 	if (!resStoredId.has_value()) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, getSpacecraftErrorCodeFromMemoryError(resStoredId.error()));
+		// Services.requestVerification.failAcceptanceVerification(
+		//     message, getSpacecraftErrorCodeFromMemoryError(resStoredId.error()));
 		return false;
 	}
 
 	if (storedId != expectedId) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		// Services.requestVerification.failAcceptanceVerification(
+		//     message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
@@ -308,8 +310,8 @@ bool LargePacketTransferService::validateSequenceNumber(Message& message, const 
 	}
 
 	if (storedSequenceNum + 1 != currentSequence) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		// Services.requestVerification.failAcceptanceVerification(
+		//     message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 
