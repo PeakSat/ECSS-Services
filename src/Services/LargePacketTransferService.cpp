@@ -68,7 +68,7 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 }
 
 
-void LargePacketTransferService::firstUplinkPart(Message& message) const {
+void LargePacketTransferService::firstUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
 
 	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
@@ -107,7 +107,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) const {
 	message.readPosition += FILENAME_SIZE;
 
 	// Extract size using ETL byte operations (big-endian)
-	const uint32_t size = (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE]) << 24) |
+	uint32_t size = (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE]) << 24) |
 	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
 	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
 	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
@@ -132,8 +132,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) const {
 		return;
 	}
 
-	// Store filename for later use using ETL
-	etl::copy(filename_sized.begin(), filename_sized.end(), localFilename);
+	etl::copy_n(filename_sized.begin(), filename_sized.size(), localFilename.begin());
 
 	// TODO: start timer
 	Services.requestVerification.successAcceptanceVerification(message);

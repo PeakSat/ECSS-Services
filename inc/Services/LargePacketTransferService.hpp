@@ -85,7 +85,7 @@ public:
 	 * TC[13,9] Function that handles the first part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	 void firstUplinkPart(Message& message) const;
+	 void firstUplinkPart(Message& message);
 
 	/**
 	 * TC[13,10] Function that handles the n-2 parts of the n-part uplink request
