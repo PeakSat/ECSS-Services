@@ -15,7 +15,7 @@ static_assert(ECSSMaxFixedOctetStringSize % (MemoryFilesystem::MRAM_DATA_BLOCK_S
 
 template <typename T>
 bool LargePacketTransferService::getMemoryParameter(Message& message, ParameterId paramId, T* value) {
-	auto result = MemoryManager::getParameter(paramId, value);
+	auto result = MemoryManager::getParameter(paramId, static_cast<void*>(value));
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, getSpacecraftErrorCodeFromMemoryError(result.error()));
@@ -26,7 +26,7 @@ bool LargePacketTransferService::getMemoryParameter(Message& message, ParameterI
 
 template <typename T>
 bool LargePacketTransferService::setMemoryParameter(Message& message, ParameterId paramId, T* value) {
-	auto result = MemoryManager::setParameter(paramId, value);
+	auto result = MemoryManager::setParameter(paramId, static_cast<void*>(value));
 	if (!result.has_value()) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, getSpacecraftErrorCodeFromMemoryError(result.error()));
@@ -89,7 +89,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 	// Validate we have enough data remaining for the payload
 	constexpr size_t REQUIRED_SIZE = 14U; // filename (10 bytes) + size (4 bytes)
-	if (message.readPosition + REQUIRED_SIZE > message.data_size_message_) {
+	if (message.readPosition + REQUIRED_SIZE > message.data_size_ecss_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
@@ -103,7 +103,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	constexpr size_t FILENAME_SIZE = 10U;
 	constexpr size_t copySize = etl::min(FILENAME_SIZE, filename_sized.size());
 
-	etl::copy_n(payloadSpan.begin(), copySize, filename_sized.begin());
+	etl::copy_n(message.data.begin() + message.readPosition, copySize, filename_sized.begin());
 	message.readPosition += FILENAME_SIZE;
 
 	// Extract size using ETL byte operations (big-endian)
@@ -128,7 +128,8 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	}
 
 	// Store part sequence number
-	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &partSequenceNumber)) {
+	uint32_t reset = 0U;
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &reset)) {
 		return;
 	}
 
@@ -147,8 +148,12 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 	uint16_t sequenceNumber = message.read<PartSequenceNum>() + 1;
 
+	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
+		// return;
+	}
+
 	// Validate remaining data
-	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_message_) {
+	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_ecss_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
@@ -157,7 +162,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	// safely create the span
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
 	if (!validateSequenceNumber(message, sequenceNumber)) {
-		return;
+		// return;
 	}
 
 	uint32_t storedCount = 0U;
@@ -181,9 +186,6 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 		return;
 	}
 
-	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
-		return;
-	}
 
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
@@ -202,7 +204,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	// Validate remaining data
-	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_message_) {
+	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_ecss_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return;
