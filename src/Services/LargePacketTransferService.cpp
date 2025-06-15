@@ -187,7 +187,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 
 
-	Services.requestVerification.successCompletionExecutionVerification(message);
+	Services.requestVerification.successProgressExecutionVerification(message, sequenceNumber);
 }
 
 
@@ -204,18 +204,18 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	// Validate remaining data
-	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_ecss_) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
+	// if (message.readPosition + ECSSMaxFixedOctetStringSize < message.data_size_ecss_) {
+	// 	Services.requestVerification.failAcceptanceVerification(
+	// 	    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+	// 	return;
+	// }
 
 	// safely create the span
-	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
+	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_-message.readPosition);
 
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
-		return;
+		// return;
 	}
 
 	uint32_t storedCount = 0U;
