@@ -307,6 +307,8 @@ public:
 
 	bool isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
 
+	bool hasActivityExpired(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
+
 	bool isServiceActive() const {
 		return executionFunctionStatus;
 	};

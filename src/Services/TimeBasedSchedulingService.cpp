@@ -156,12 +156,12 @@ UTCTimestamp TimeBasedSchedulingService::getNextScheduledActivityTimestamp(UTCTi
 		return {9999, 12, 31, 23, 59, 59};
 	}
 	sortActivityEntries(entries);
+	auto storeStatus = storeActivityEntries(entries);
+	if (storeStatus != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return {9999, 12, 31, 23, 59, 59};
+	}
 	if (entries[0].state != Activity_State::invalid) {
-		auto storeStatus = storeActivityEntries(entries);
-		if (storeStatus != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
-			// Reason for failure is printed inside the function
-			return {9999, 12, 31, 23, 59, 59};
-		}
 		if (currentTime > entries[0].timestamp) {
 			// Current time is bigger than the execution time, but within the margin
 			if (isExecutionTimeWithinMargin(currentTime, entries[0].timestamp)) {
@@ -171,6 +171,15 @@ UTCTimestamp TimeBasedSchedulingService::getNextScheduledActivityTimestamp(UTCTi
 		return entries[0].timestamp;
 	}
 	return {9999, 12, 31, 23, 59, 59};
+}
+
+bool TimeBasedSchedulingService::hasActivityExpired(UTCTimestamp currentTime, UTCTimestamp executionTime) const {
+	if (currentTime > executionTime) {
+		if ( std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - executionTime).count() >= _tc_execution_margin_ms ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool TimeBasedSchedulingService::isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const {
@@ -194,7 +203,7 @@ void TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp currentTi
 	}
 
 	uint8_t _stored_tc_to_check = 0;
-	while ((not isExecutionTimeWithinMargin(currentTime, entries[_stored_tc_to_check].timestamp))  && (entries[_stored_tc_to_check].state == Activity_State::waiting)) {
+	while ((hasActivityExpired(currentTime, entries[_stored_tc_to_check].timestamp))  && (entries[_stored_tc_to_check].state == Activity_State::waiting)) {
 		// Expired TC
 		LOG_DEBUG<<"[TC_SCHEDULING] Found expired TC, invalidating";
 		entries[_stored_tc_to_check].state = Activity_State::invalid;
@@ -448,9 +457,9 @@ void TimeBasedSchedulingService::initEsotericVariables() {
 	MemoryManager::getParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_tc_schedule));
 	MemoryManager::getParameter(PeakSatParameters::OBDH_SCHEDULED_TC_EXECUTION_MARGIN_ID, static_cast<void*>(&_tc_execution_margin));
 
+	ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities] = {0};
 	if (_valid_schedule_list == 0) {
 		// Invalid schedule list, initialise array in MRAM with the correct IDs
-		ActivityEntry entries[ECSSMaxNumberOfTimeSchedActivities] = {0};
 		for (int i=0; i<ECSSMaxNumberOfTimeSchedActivities;i++) {
 			entries[i].id = i;
 			entries[i].state = Activity_State::invalid;
@@ -461,6 +470,25 @@ void TimeBasedSchedulingService::initEsotericVariables() {
 		}
 		_valid_schedule_list = 1;
 		MemoryManager::setParameter(PeakSatParameters::OBDH_VALID_TC_SCHEDULE_LIST_ID, static_cast<void*>(&_valid_schedule_list));
+	}
+
+
+	if (readActivityEntries(entries) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+		// Reason for failure is printed inside the function
+		return;
+	}
+
+	uint8_t _stored_tc_to_check = 0;
+	auto currentTime = TimeGetter::getCurrentTimeUTC();
+	while ((hasActivityExpired(currentTime, entries[_stored_tc_to_check].timestamp))  && (entries[_stored_tc_to_check].state == Activity_State::waiting)) {
+		// Expired TC
+		LOG_DEBUG<<"[TC_SCHEDULING] Found expired TC, invalidating";
+		entries[_stored_tc_to_check].state = Activity_State::invalid;
+		_stored_tc_to_check++;
+		if (_stored_tc_to_check == ECSSMaxNumberOfTimeSchedActivities) {
+			_stored_tc_to_check=0;
+			break;
+		}
 	}
 
 	if (_active_tc_schedule != 0) {
