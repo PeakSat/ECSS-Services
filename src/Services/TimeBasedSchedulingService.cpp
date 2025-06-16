@@ -234,6 +234,8 @@ void TimeBasedSchedulingService::enableScheduleExecution(const Message& request)
 	executionFunctionStatus = true;
 	uint8_t _active_tc_schedule = 1;
 	MemoryManager::setParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_tc_schedule));
+
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void TimeBasedSchedulingService::disableScheduleExecution(const Message& request) {
@@ -243,6 +245,8 @@ void TimeBasedSchedulingService::disableScheduleExecution(const Message& request
 	executionFunctionStatus = false;
 	uint8_t _active_tc_schedule = 0;
 	MemoryManager::setParameter(PeakSatParameters::OBDH_TC_SCHEDULE_ACTIVE_ID, static_cast<void*>(&_active_tc_schedule));
+
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void TimeBasedSchedulingService::resetSchedule(const Message& request) {
@@ -257,12 +261,17 @@ void TimeBasedSchedulingService::resetSchedule(const Message& request) {
 		entries[i].state = Activity_State::invalid;
 	}
 	const auto deleteStatus = storeActivityEntries(entries);
-	if (deleteStatus!=SpacecraftErrorCode::GENERIC_ERROR_NONE) {
+
+	if (deleteStatus != GENERIC_ERROR_NONE) {
 		LOG_ERROR<<"[TC_SCHEDULING] Error reseting schedule <SEC>"<<static_cast<uint16_t>(deleteStatus);
+		Services.requestVerification.failCompletionExecutionVerification(request, static_cast<SpacecraftErrorCode>(deleteStatus));
+		return; // Exit execution
 	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
+
 	_valid_tc_schedule = 1;
-	notifyNewActivityAddition();
 	MemoryManager::setParameter(PeakSatParameters::OBDH_VALID_TC_SCHEDULE_LIST_ID, static_cast<void*>(&_valid_tc_schedule));
+	notifyNewActivityAddition();
 }
 
 void TimeBasedSchedulingService::insertActivities(Message& request) {
@@ -327,10 +336,14 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 		}
 	}
 	sortActivityEntries(entries);
-	if (storeActivityEntries(entries) != SpacecraftErrorCode::GENERIC_ERROR_NONE) {
-		// Reason for failure is printed inside the function
-		return;
+	auto status = storeActivityEntries(entries) != SpacecraftErrorCode::GENERIC_ERROR_NONE;
+
+	if (status != GENERIC_ERROR_NONE) {
+		Services.requestVerification.failCompletionExecutionVerification(request, static_cast<SpacecraftErrorCode>(status));
+		return; // Exit execution
 	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
+
 	notifyNewActivityAddition();
 }
 
@@ -358,7 +371,12 @@ void TimeBasedSchedulingService::timeShiftAllActivities(Message& request) {
 			entries[i].timestamp += std::chrono::seconds(relativeOffset);
 		}
 	}
-	storeActivityEntries(entries);
+	auto status = storeActivityEntries(entries);
+
+	if (status != GENERIC_ERROR_NONE) {
+		Services.requestVerification.failCompletionExecutionVerification(request, static_cast<SpacecraftErrorCode>(status));
+	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void TimeBasedSchedulingService::detailReportAllActivities(const Message& request) {
