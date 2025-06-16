@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <cstdint>
+
 /**
  * @defgroup ECSSDefinitions ECSS Defined Constants
  *
@@ -57,7 +58,7 @@ inline constexpr uint16_t ECSSMaxStringSize = 256U;
  *
  * This is used by the Message::appendString() and Message::readString() functions
  */
-inline constexpr uint16_t ECSSMaxFixedOctetStringSize = 256U;
+inline constexpr uint16_t ECSSMaxFixedOctetStringSize = 256U - 2U;
 
 /**
  * The total number of different message types that can be handled by this project
@@ -100,7 +101,7 @@ inline constexpr uint8_t ECSSTCRequestStringSize = 64;
  * The maximum number of activities that can be in the time-based schedule
  * @see TimeBasedSchedulingService
  */
-inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 10;
+inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 20;
 
 /**
  * @brief Time margin used in the time based command scheduling service ST[11]

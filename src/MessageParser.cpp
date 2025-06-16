@@ -89,6 +89,9 @@ void MessageParser::execute(Message& message) { //cppcheck-suppress[constParamet
 			Services.fileManagement.execute(message); // ST[23]
 			break;
 #endif
+		case LargePacketTransferService::ServiceType:
+			Services.largePacketTransferService.execute(message);
+			break;
 		default:
 			ErrorHandler::reportInternalError(ErrorHandler::OtherMessageType);
 	}
@@ -115,10 +118,10 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
 
 	message = Message(0, 0, packet_type, APID);
 
-	if (packet_type == (Message::TM && (length < ECSSSecondaryTMHeaderSize))) {
+	if ((packet_type == Message::TM) && (length < ECSSSecondaryTMHeaderSize)) {
 		return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
 	}
-	if (packet_type == (Message::TC && (length < ECSSSecondaryTCHeaderSize))) {
+	if ((packet_type == Message::TC) && (length < ECSSSecondaryTCHeaderSize)) {
 		return OBDH_ERROR_MESSAGE_PARSER_TC_SIZE_LESS_THAN_EXPECTED;
 	}
 
@@ -261,58 +264,58 @@ etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> MessageParser::c
 
 etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> MessageParser::compose(Message& message, uint16_t total_eccs_size) {
 
-    if (total_eccs_size > CCSDSMaxMessageSize - CCSDSPrimaryHeaderSize) {
-       return etl::unexpected(OBDH_ERROR_MESSAGE_PARSER_COMPOSE_DATA_SIZE_LARGER_THAN_EXPECTED);
-    }
-    message.total_size_ecss_ = total_eccs_size;
-    if (message.packet_type_ == Message::TC) {
-       message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTCHeaderSize;
-    }
+	if (total_eccs_size > CCSDSMaxMessageSize - CCSDSPrimaryHeaderSize) {
+		return etl::unexpected(OBDH_ERROR_MESSAGE_PARSER_COMPOSE_DATA_SIZE_LARGER_THAN_EXPECTED);
+	}
+	message.total_size_ecss_ = total_eccs_size;
+	if (message.packet_type_ == Message::TC) {
+		message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTCHeaderSize;
+	}
 
-    if (message.packet_type_ == Message::TM) {
-       message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTMHeaderSize;
-    }
-    message.total_size_ccsds_ = total_eccs_size + CCSDSPrimaryHeaderSize;
+	if (message.packet_type_ == Message::TM) {
+		message.data_size_ecss_ = total_eccs_size - ECSSSecondaryTMHeaderSize;
+	}
+	message.total_size_ccsds_ = total_eccs_size + CCSDSPrimaryHeaderSize;
 
-    // First, compose the ECSS part
-    // here the size must be totalECSSSize
-    auto result = composeECSS(message, total_eccs_size);
+	// First, compose the ECSS part
+	// here the size must be totalECSSSize
+	auto result = composeECSS(message, total_eccs_size);
 
-    if (!result.has_value()) {
-       return etl::unexpected(result.error());
-    }
-    const auto& data = result.value();
+	if (!result.has_value()) {
+		return etl::unexpected(result.error());
+	}
+	const auto& data = result.value();
 
-    // Parts of the header
-    ApplicationProcessId packetId = message.application_ID_;
-    packetId |= (1U << 11U); // Secondary header flag
-    packetId |= (message.packet_type_ == Message::TC) ? (1U << 12U)
-                                                      : (0U); // Ignore-MISRA
-    SequenceCount const packetSequenceControl = message.packet_sequence_count_ | (3U << 14U);
+	// Parts of the header
+	ApplicationProcessId packetId = message.application_ID_;
+	packetId |= (1U << 11U); // Secondary header flag
+	packetId |= (message.packet_type_ == Message::TC) ? (1U << 12U)
+	                                                  : (0U); // Ignore-MISRA
+	SequenceCount const packetSequenceControl = message.packet_sequence_count_ | (3U << 14U);
 	const uint16_t packetCCSDSDataLength = data.size() - 1;
 
-    // Compile the header
-    etl::array<uint8_t, CCSDSPrimaryHeaderSize> header = {};
+	// Compile the header
+	etl::array<uint8_t, CCSDSPrimaryHeaderSize> header = {};
 
-    header[0] = packetId >> 8U;
-    header[1] = packetId & 0xffU;
-    header[2] = packetSequenceControl >> 8U;
-    header[3] = packetSequenceControl & 0xffU;
-    header[4] = packetCCSDSDataLength >> 8U;
-    header[5] = packetCCSDSDataLength & 0xffU;
+	header[0] = packetId >> 8U;
+	header[1] = packetId & 0xffU;
+	header[2] = packetSequenceControl >> 8U;
+	header[3] = packetSequenceControl & 0xffU;
+	header[4] = packetCCSDSDataLength >> 8U;
+	header[5] = packetCCSDSDataLength & 0xffU;
 
-    // Compile the final message by appending the header
-    String<CCSDSMaxMessageSize> ccsdsMessage(header.data(), CCSDSPrimaryHeaderSize);
-    ccsdsMessage.append(data);
-    // CRC
-    if constexpr (CRCHelper::EnableCRC) {
-       const CRCSize crcField = CRCHelper::calculateCRC(reinterpret_cast<uint8_t*>(ccsdsMessage.data()), CCSDSPrimaryHeaderSize + data.size());
-       etl::array<uint8_t, CRCField> crcMessage = {static_cast<uint8_t>(crcField >> 8U), static_cast<uint8_t>(crcField & 0xFF)};
-       String<CCSDSMaxMessageSize> crcString(crcMessage.data(), 2);
-       ccsdsMessage.append(crcString);
-    }
+	// Compile the final message by appending the header
+	String<CCSDSMaxMessageSize> ccsdsMessage(header.data(), CCSDSPrimaryHeaderSize);
+	ccsdsMessage.append(data);
+	// CRC
+	if constexpr (CRCHelper::EnableCRC) {
+		const CRCSize crcField = CRCHelper::calculateCRC(reinterpret_cast<uint8_t*>(ccsdsMessage.data()), CCSDSPrimaryHeaderSize + data.size());
+		etl::array<uint8_t, CRCField> crcMessage = {static_cast<uint8_t>(crcField >> 8U), static_cast<uint8_t>(crcField & 0xFF)};
+		String<CCSDSMaxMessageSize> crcString(crcMessage.data(), 2);
+		ccsdsMessage.append(crcString);
+	}
 
-    return ccsdsMessage;
+	return ccsdsMessage;
 }
 
 SpacecraftErrorCode MessageParser::parseECSSTMHeader(const uint8_t* data, uint16_t length, Message& message) {

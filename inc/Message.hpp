@@ -107,6 +107,8 @@ public:
 
 	uint16_t data_size_message_ = 0;
 
+	uint16_t function_id_ = 0;
+
 
 	/**
 	 * Pointer to the contents of the message (excluding the PUS header)

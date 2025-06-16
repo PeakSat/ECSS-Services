@@ -54,18 +54,18 @@ public:
 	 * Calls the function described in the TC[8,1] message *msg*, passing the arguments contained
 	 * and, if non-existent, generates a failed start of execution notification. Returns an unneeded
 	 * int, for testing purposes.
-	 * @param functionID
+	 * @param functionID_raw
 	 * @param functionArgs
 	 */
 
-	static SpacecraftErrorCode call(FunctionManagerId_t functionID, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
+	static SpacecraftErrorCode call(FunctionManagerId_t functionID_raw, etl::array<uint8_t, ECSSFunctionMaxArgLength>& functionArgs);
 
 	/**
 	 * Optional response to TC[8,1]
 	 * @param functionID
 	 * @param string data generated from the function
 	 */
-	void functionRespond(FunctionManagerId_t functionID, const String<ECSSMaxFixedOctetStringSize>& string);
+	void functionRespond(FunctionManagerId_t functionID, const String<ECSSMaxFixedOctetStringSize>& string) const;
 
 	/**
 	 * It is responsible to call the suitable function that executes a telecommand packet. The source of that packet

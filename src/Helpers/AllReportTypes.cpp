@@ -47,7 +47,7 @@ namespace AllReportTypes {
 	const ServiceDefinitionsVector ST11Reports = {TimeBasedSchedulingService::MessageType::TimeBasedScheduledSummaryReport};
 
 	const ServiceDefinitionsVector ST13Reports = {LargePacketTransferService::MessageType::FirstDownlinkPartReport,
-	                                                                         LargePacketTransferService::MessageType::InternalDownlinkPartReport,
+	                                                                         LargePacketTransferService::MessageType::IntermediateDownlinkPartReport,
 	                                                                         LargePacketTransferService::MessageType::LastDownlinkPartReport};
 
 	const ServiceDefinitionsVector ST17Reports = {TestService::MessageType::AreYouAliveTestReport,
