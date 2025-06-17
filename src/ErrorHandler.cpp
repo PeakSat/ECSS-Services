@@ -57,7 +57,7 @@ void ErrorHandler::reportError(const Message& message, InternalErrorType errorCo
 #endif
 	String<ECSSEventDataAuxiliaryMaxSize> eventMessage("");
 	eventMessage.append(static_cast<uint8_t>(errorCode), sizeof(uint8_t));
-	PMON_Handlers::raiseEvent(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
+	RAISE_EVENT_WITH_CONTEXT(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
 	logError(message, errorCode);
 }
 
@@ -68,13 +68,13 @@ void ErrorHandler::reportError(const Message& message, Memory_Errno errorCode) {
 #endif
 	String<ECSSEventDataAuxiliaryMaxSize> eventMessage("");
 	eventMessage.append(static_cast<uint8_t>(errorCode), sizeof(uint8_t));
-	PMON_Handlers::raiseEvent(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
+	RAISE_EVENT_WITH_CONTEXT(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
 	// logError(message, getSpacecraftErrorCodeFromMemoryError(errorCode));
 }
 
 void ErrorHandler::reportInternalError(ErrorHandler::InternalErrorType errorCode) {
 	String<ECSSEventDataAuxiliaryMaxSize> eventMessage("");
 	eventMessage.append(static_cast<uint8_t>(errorCode), sizeof(uint8_t));
-	PMON_Handlers::raiseEvent(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
+	RAISE_EVENT_WITH_CONTEXT(EventReportService::FailedStartOfExecution, EventType::InternalErrorType, EventReportService::LowSeverityAnomalyReport, eventMessage);
 	logError(errorCode);
 }
