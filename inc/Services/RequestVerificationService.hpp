@@ -7,6 +7,7 @@
 #include "Service.hpp"
 
 #include <ErrorDefinitions.hpp>
+#include <etl/vector.h>
 
 /**
  * Implementation of the ST[01] request verification service
@@ -152,7 +153,7 @@ public:
 	 * @param errorCode The cause of creating this type of report
 	 */
 	void failCompletionExecutionVerification(const Message& request,
-	                                         SpacecraftErrorCode errorCode);
+	                                         SpacecraftErrorCode errorCode, const etl::vector<PartSequenceNum, 500>& extra_data= {});
 
 	/**
 	 * TM[1,10] failed routing verification report
@@ -172,7 +173,8 @@ public:
 	 * The data is actually some data members of Message that contain the basic info of the
 	 * telecommand packet that failed the routing.
 	 * @param report Contains the appended bits to be stored
+	 * @param extra_data
 	 */
-	void assembleReportMessage(const Message& request, Message& report);
+	static void assembleReportMessage(const Message& request, Message& report, const etl::vector<PartSequenceNum, 500>& extra_data = {});
 };
 #endif // ECSS_SERVICES_REQUESTVERIFICATIONSERVICE_HPP

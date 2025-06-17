@@ -70,20 +70,25 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 
 void LargePacketTransferService::firstUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
+	PartSequenceNum partSequenceNumber = message.read<PartSequenceNum>();
 
 	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
+		failedSequenceCounts.push_back(partSequenceNumber);
 		return;
 	}
 
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID,
 	                        static_cast<void*>(&largeMessageTransactionIdentifier))) {
+		failedSequenceCounts.push_back(partSequenceNumber);
+
 		return;
 	}
 
-	PartSequenceNum partSequenceNumber = message.read<PartSequenceNum>();
 	if (partSequenceNumber != 0U) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		failedSequenceCounts.push_back(partSequenceNumber);
+
 		return;
 	}
 
@@ -92,6 +97,8 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	if (message.readPosition + REQUIRED_SIZE > message.data_size_ecss_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		failedSequenceCounts.push_back(partSequenceNumber);
+
 		return;
 	}
 
@@ -108,13 +115,15 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 	// Extract size using ETL byte operations (big-endian)
 	uint32_t size = (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE]) << 24) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
 	message.readPosition += 4;
 
 	// Store the file size
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_UPLINK_SIZE_ID, &size)) {
+		failedSequenceCounts.push_back(partSequenceNumber);
+
 		return;
 	}
 
@@ -124,12 +133,15 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 		resetTransferParameters();
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		failedSequenceCounts.push_back(partSequenceNumber);
+
 		return;
 	}
 
 	// Store part sequence number
 	uint32_t reset = 0U;
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &reset)) {
+		failedSequenceCounts.push_back(partSequenceNumber);
 		return;
 	}
 
@@ -142,31 +154,39 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
+	uint16_t sequenceNumber = message.read<PartSequenceNum>() + 1;
 
 	if (!validateUplinkMessage(message, MessageType::IntermediateUplinkPartReport, largeMessageTransactionIdentifier)) {
+		failedSequenceCounts.push_back(sequenceNumber);
+
 		return;
 	}
-	uint16_t sequenceNumber = message.read<PartSequenceNum>() + 1;
 
 	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
 		// return;
+		failedSequenceCounts.push_back(sequenceNumber);
 	}
 
 	// Validate remaining data
 	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_ecss_) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		failedSequenceCounts.push_back(sequenceNumber);
+
 		return;
 	}
 
 	// safely create the span
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
 	if (!validateSequenceNumber(message, sequenceNumber)) {
+		failedSequenceCounts.push_back(sequenceNumber);
+
 		// return;
 	}
 
 	uint32_t storedCount = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &storedCount)) {
+		failedSequenceCounts.push_back(sequenceNumber);
 		return;
 	}
 
@@ -179,10 +199,13 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	if (resMramWriteFile != Memory_Errno::NONE) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, getSpacecraftErrorCodeFromMemoryError(resMramWriteFile));
+		failedSequenceCounts.push_back(sequenceNumber);
+
 		return;
 	}
 
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
+		failedSequenceCounts.push_back(sequenceNumber);
 		return;
 	}
 
@@ -195,10 +218,14 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
 
 	if (!validateUplinkMessage(message, MessageType::LastUplinkPartReport, largeMessageTransactionIdentifier)) {
+
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
+
 		return;
 	}
 
 	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
 		return;
 	}
 
@@ -211,15 +238,19 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	// }
 
 	// safely create the span
-	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_-message.readPosition);
+	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_ - message.readPosition);
 
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
+
 		// return;
 	}
 
 	uint32_t storedCount = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_COUNT_ID, &storedCount)) {
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
+
 		return;
 	}
 
@@ -232,10 +263,13 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	if (resMramWriteFile != Memory_Errno::NONE) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, getSpacecraftErrorCodeFromMemoryError(resMramWriteFile));
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
+
 		return;
 	}
 
 	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
 		return;
 	}
 
@@ -250,6 +284,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 
 	if (storedSize != calculatedSize) {
 		// report back - implementation specific
+		Services.requestVerification.failCompletionExecutionVerification(message, SpacecraftErrorCode::OBDH_ERROR_PACKET_LOST, failedSequenceCounts);
 	}
 
 	uint16_t resetSequenceNumber = 0U;

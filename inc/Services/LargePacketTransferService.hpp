@@ -2,6 +2,7 @@
 #define ECSS_SERVICES_LARGEPACKETTRANSFERSERVICE_HPP
 
 #include <etl/String.hpp>
+#include <etl/vector.h>
 
 #include "Service.hpp"
 
@@ -18,6 +19,7 @@
 class LargePacketTransferService : public Service {
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 13;
+	etl::vector<SequenceCount, 500> failedSequenceCounts{};
 
 	static constexpr uint16_t UplinkMaximumLargePacketsSize = 400U; // todo revisit
 	static constexpr uint8_t UplinkMaximumPartSize = ECSSMaxFixedOctetStringSize;

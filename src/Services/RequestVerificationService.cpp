@@ -3,8 +3,10 @@
 
 #include "RequestVerificationService.hpp"
 
+#include <etl/vector.h>
 
-void RequestVerificationService::assembleReportMessage(const Message& request, Message& report) {
+
+void RequestVerificationService::assembleReportMessage(const Message& request, Message& report, const etl::vector<PartSequenceNum, 500>& extra_data) {
 
 	report.appendEnumerated(CCSDSPacketVersionBits, CCSDSPacketVersion);
 	report.appendEnumerated(PacketTypeBits, request.packet_type_);
@@ -15,6 +17,10 @@ void RequestVerificationService::assembleReportMessage(const Message& request, M
 	report.appendBits(PacketTypeBits, request.packet_type_);
 	report.append<uint16_t>(request.packet_sequence_count_);
 	report.append<uint16_t>(request.function_id_);
+
+	for (const auto& part_seq : extra_data) {
+		report.append<PartSequenceNum>(part_seq);
+	}
 }
 
 void RequestVerificationService::successAcceptanceVerification(const Message& request) {
@@ -97,7 +103,7 @@ void RequestVerificationService::successCompletionExecutionVerification(const Me
 }
 
 void RequestVerificationService::failCompletionExecutionVerification(
-    const Message& request, SpacecraftErrorCode errorCode) {
+    const Message& request, SpacecraftErrorCode errorCode, const etl::vector<PartSequenceNum, 500>& extra_data) {
 	// TM[1,8] failed completion of execution verification report
 
 	Message report = createTM(RequestVerificationService::MessageType::FailedCompletionOfExecution);
