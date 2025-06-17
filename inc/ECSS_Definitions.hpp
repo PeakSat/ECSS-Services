@@ -131,7 +131,7 @@ inline constexpr uint8_t ECSSMaxDeltaOfReleaseTime = 60;
 /**
  * The max number of simply commutated parameters per housekeeping structure in ST[03]
  */
-inline constexpr uint16_t ECSSMaxSimplyCommutatedParameters = 50;
+inline constexpr uint16_t ECSSMaxSimplyCommutatedParameters = 20;
 
 /**
  * The number of functions supported by the \ref FunctionManagementService
@@ -197,7 +197,7 @@ inline constexpr uint16_t ECSSPacketStoreIdSize = 15;
 /**
  * @brief Defines the max number of housekeeping structs that the housekeeping service can contain
  */
-inline constexpr uint8_t ECSSMaxHousekeepingStructures = 10;
+inline constexpr uint8_t ECSSMaxHousekeepingStructures = 22;
 
 /**
  * The max number of controlled application processes
