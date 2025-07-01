@@ -11,8 +11,7 @@ void RequestVerificationService::assembleReportMessage(const Message& request, M
 	report.appendBits(SecondaryHeaderFlagBits, SecondaryHeaderFlag);
 	report.appendEnumerated(ApplicationIdBits, request.application_ID_);
 	report.appendEnumerated(ECSSSequenceFlagsBits, ECSSSequenceFlags);
-	report.appendBits(PacketSequenceCountBits, request.packet_sequence_count_);
-	report.appendBits(PacketTypeBits, request.packet_type_);
+	report.finalize(); // USed to complete the pending bits of the unfilled bytes
 	report.append<uint16_t>(request.packet_sequence_count_);
 	report.append<uint16_t>(request.function_id_);
 }

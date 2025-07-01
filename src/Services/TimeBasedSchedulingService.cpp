@@ -163,11 +163,28 @@ UTCTimestamp TimeBasedSchedulingService::getNextScheduledActivityTimestamp(UTCTi
 	}
 	if (entries[0].state != Activity_State::invalid) {
 		if (currentTime > entries[0].timestamp) {
-			// Current time is bigger than the execution time, but within the margin
 			if (isExecutionTimeWithinMargin(currentTime, entries[0].timestamp)) {
 				return currentTime;
 			}
 		}
+		if (currentTime < entries[0].timestamp) {
+			LOG_INFO<<"[TC_SCHEDULING] Maybe a time shift happened?";
+			uint8_t _stored_tc_to_check = 0;
+			while ((not isExecutionTimeWithinMargin(currentTime, entries[_stored_tc_to_check].timestamp))  && (entries[_stored_tc_to_check].state == Activity_State::waiting)) {
+				// Expired TC
+				LOG_DEBUG<<"[TC_SCHEDULING] Found expired TC, invalidating";
+				entries[_stored_tc_to_check].state = Activity_State::invalid;
+				_stored_tc_to_check++;
+				if (_stored_tc_to_check == ECSSMaxNumberOfTimeSchedActivities) {
+					return {9999, 12, 31, 23, 59, 59};
+				}
+			}
+			if (entries[_stored_tc_to_check].state == Activity_State::waiting) {
+				return entries[_stored_tc_to_check].timestamp;
+			}
+			return {9999, 12, 31, 23, 59, 59};
+		}
+
 		return entries[0].timestamp;
 	}
 	return {9999, 12, 31, 23, 59, 59};
@@ -279,7 +296,10 @@ void TimeBasedSchedulingService::resetSchedule(const Message& request) {
 	Services.requestVerification.successCompletionExecutionVerification(request);
 
 	_valid_tc_schedule = 1;
+	uint8_t _is_memory_health_check_programmed = 0;
 	MemoryManager::setParameter(PeakSatParameters::OBDH_VALID_TC_SCHEDULE_LIST_ID, static_cast<void*>(&_valid_tc_schedule));
+	MemoryManager::setParameter(PeakSatParameters::OBDH_MEMORY_HEALTH_CHECKS_IS_SET_ID, static_cast<void*>(&_is_memory_health_check_programmed));
+
 	notifyNewActivityAddition();
 }
 
@@ -295,7 +315,7 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 	}
 
 	uint16_t iterationCount = request.readUint16();
-	while (iterationCount-- != 0) {
+	while (iterationCount != 0) {
 		const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
 		const UTCTimestamp releaseTime(request.readUTCTimestamp());
 
@@ -343,6 +363,7 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 				return;
 			}
 		}
+		iterationCount-=1;
 	}
 	sortActivityEntries(entries);
 	auto status = storeActivityEntries(entries) != SpacecraftErrorCode::GENERIC_ERROR_NONE;
