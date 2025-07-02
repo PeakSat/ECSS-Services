@@ -240,7 +240,7 @@ void TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp currentTi
 		if (_activity.requestID.applicationID == ApplicationId) {
 			auto status = tcHandlingTask->addToQueue(_activity.request, 20);
 			if (status == true) {
-				xTaskNotify(TCHandlingTask::tcHandlingTaskHandle, TASK_BIT_TC_HANDLING, eSetBits);
+				xTaskNotify(tcHandlingTask->taskHandle, TASK_BIT_TC_HANDLING, eSetBits);
 				LOG_DEBUG<<"[TC_SCHEDULING] Added activity to TC Handling queue";
 			}else {
 				LOG_ERROR<<"[TC_SCHEDULING] Failed to add activity to TC Handling queue";
@@ -293,13 +293,14 @@ void TimeBasedSchedulingService::resetSchedule(const Message& request) {
 		Services.requestVerification.failCompletionExecutionVerification(request, static_cast<SpacecraftErrorCode>(deleteStatus));
 		return; // Exit execution
 	}
+
 	Services.requestVerification.successCompletionExecutionVerification(request);
 
 	_valid_tc_schedule = 1;
 	uint8_t _is_memory_health_check_programmed = 0;
 	MemoryManager::setParameter(PeakSatParameters::OBDH_VALID_TC_SCHEDULE_LIST_ID, static_cast<void*>(&_valid_tc_schedule));
 	MemoryManager::setParameter(PeakSatParameters::OBDH_MEMORY_HEALTH_CHECKS_IS_SET_ID, static_cast<void*>(&_is_memory_health_check_programmed));
-
+	LOG_DEBUG<<"[TC_SCHEDULING] Schedule reset";
 	notifyNewActivityAddition();
 }
 
@@ -366,7 +367,7 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 		iterationCount-=1;
 	}
 	sortActivityEntries(entries);
-	auto status = storeActivityEntries(entries) != SpacecraftErrorCode::GENERIC_ERROR_NONE;
+	auto status = storeActivityEntries(entries);
 
 	if (status != GENERIC_ERROR_NONE) {
 		Services.requestVerification.failCompletionExecutionVerification(request, static_cast<SpacecraftErrorCode>(status));
