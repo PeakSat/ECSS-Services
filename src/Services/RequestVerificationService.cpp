@@ -12,7 +12,7 @@ void RequestVerificationService::assembleReportMessage(const Message& request, M
 	report.appendEnumerated(ApplicationIdBits, request.application_ID_);
 	report.appendEnumerated(ECSSSequenceFlagsBits, ECSSSequenceFlags);
 	report.appendBits(PacketSequenceCountBits, request.packet_sequence_count_);
-	report.appendBits(PacketTypeBits, request.packet_type_);
+	// report.appendBits(PacketTypeBits, request.packet_type_);
 	report.append<uint16_t>(request.packet_sequence_count_);
 	report.append<uint16_t>(request.function_id_);
 }
