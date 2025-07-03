@@ -121,6 +121,7 @@ public:
 		PayloadUnknownEvent = 33,
 		PayloadUartError = 34,
 		ImageDownloaded = 35,
+		NANDError = 36,
 
 	};
 
