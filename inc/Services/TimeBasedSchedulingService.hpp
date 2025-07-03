@@ -305,6 +305,8 @@ public:
 
 	void initEsotericVariables();
 
+	void checkForPeriodicScheduledActivity(const uint8_t id);
+
 	bool isExecutionTimeWithinMargin(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
 
 	bool hasActivityExpired(UTCTimestamp currentTime, UTCTimestamp executionTime) const;
