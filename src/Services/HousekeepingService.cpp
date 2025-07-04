@@ -265,9 +265,7 @@ bool HousekeepingService::existsInVector(const etl::vector<uint16_t, ECSSMaxSimp
 	return std::find(std::begin(ids), std::end(ids), parameterId) != std::end(ids);
 }
 
-UTCTimestamp
-HousekeepingService::
-    reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay) {
+UTCTimestamp HousekeepingService::reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay) {
 	UTCTimestamp nextCollection{9999, 12, 31, 23, 59, 59}; // Max timestamp
 
 	for (const auto& housekeepingStructure: housekeepingStructures) {
