@@ -16,7 +16,7 @@ void FunctionManagementService::execute(Message& message) {
 	etl::array<uint8_t, ECSSFunctionMaxArgLength> functionArgs{};
 
 	etl::copy_n(message.data.begin()+2, ECSSFunctionMaxArgLength, functionArgs.begin());
-	SpacecraftErrorCode status = GENERIC_ERROR_UNKNOWN_INTERNAL;
+	SpacecraftErrorCode status = OBDH_ERROR_UNKNOWN_INTERNAL;
 
 	status = call(functionID, functionArgs); // TC[8,1]
 
