@@ -41,11 +41,6 @@ private:
 public:
 	inline static constexpr ServiceTypeNum ServiceType = 3;
 
-	/**
-	 * Map containing the housekeeping structures. Map[i] contains the housekeeping structure with ID = i.
-	 */
-	etl::map<ParameterReportStructureId, HousekeepingStructure, ECSSMaxHousekeepingStructures> housekeepingStructures;
-
 	enum MessageType : uint8_t {
 		CreateHousekeepingReportStructure = 1,
 		DeleteHousekeepingReportStructure = 3,
@@ -72,23 +67,12 @@ public:
 	 * @return boolean True if periodic generation of housekeeping reports is enabled, false otherwise
 	 */
 	inline bool getPeriodicGenerationActionStatus(ParameterReportStructureId id) {
-		const HousekeepingStructure newStructure{};
 		if (hasNonExistingStructInternalError(id)) {
-			return newStructure.periodicGenerationActionStatus;
+			return false;
 		}
-		return housekeepingStructures.at(id).periodicGenerationActionStatus;
-	}
-
-	/**
-	 * Returns a reference to the structure at position of "id" in the map.
-	 * @param id Housekeeping structure ID
-	 * @return optional<std::reference_wrapper<HousekeepingStructure>> Reference to Housekeeping Structure
-	 */
-	inline std::optional<std::reference_wrapper<HousekeepingStructure>> getStruct(ParameterReportStructureId id) {
-		if (hasNonExistingStructInternalError(id)) {
-			return {};
-		}
-		return housekeepingStructures.at(id);
+		HousekeepingStructure structure = {};
+		int offset = getHousekeepingStructureById(id, structure);
+		return structure.periodicGenerationActionStatus;
 	}
 
 	/**
@@ -101,7 +85,9 @@ public:
 			const HousekeepingStructure newStructure{};
 			return newStructure.collectionInterval;
 		}
-		return housekeepingStructures.at(id).collectionInterval;
+		HousekeepingStructure structure = {};
+		int offset = getHousekeepingStructureById(id, structure);
+		return structure.collectionInterval;
 	}
 
 	/**
@@ -113,7 +99,10 @@ public:
 		if (hasNonExistingStructInternalError(id)) {
 			return;
 		}
-		housekeepingStructures.at(id).periodicGenerationActionStatus = status;
+		HousekeepingStructure structure = {};
+		int offset = getHousekeepingStructureById(id, structure);
+		structure.periodicGenerationActionStatus = status;
+		updateHouseKeepingStruct(offset, structure);
 	}
 
 	/**
@@ -125,7 +114,10 @@ public:
 		if (hasNonExistingStructInternalError(id)) {
 			return;
 		}
-		housekeepingStructures.at(id).collectionInterval = interval;
+		HousekeepingStructure structure = {};
+		int offset = getHousekeepingStructureById(id, structure);
+		structure.collectionInterval = interval;
+		updateHouseKeepingStruct(offset, structure);
 	}
 
 	/**
@@ -134,7 +126,11 @@ public:
 	 * @return boolean True if the structure exists, false otherwise
 	 */
 	inline bool structExists(ParameterReportStructureId id) {
-		return (housekeepingStructures.find(id) != housekeepingStructures.end());
+		HousekeepingStructure _structure = {};
+		if (getHousekeepingStructureById(id, _structure) > 0) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -285,6 +281,12 @@ public:
 	 * @return uint32_t The minimum amount of time until the next periodic housekeeping report, in milliseconds.
 	 */
 	UTCTimestamp reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay);
+
+	static void readHousekeepingStruct(uint8_t struct_offset, HousekeepingStructure& structure);
+
+	static void updateHouseKeepingStruct(uint8_t struct_offset, HousekeepingStructure structure);
+
+	static int getHousekeepingStructureById(uint16_t structure_id, HousekeepingStructure& structure);
 
 	/**
 	 * It is responsible to call the suitable function that executes a TC packet. The source of that packet
