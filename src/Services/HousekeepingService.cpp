@@ -107,9 +107,9 @@ void HousekeepingService::createHousekeepingReportStructure(Message& request) {
 	newStructure.collectionInterval = request.read<CollectionInterval>();
 	newStructure.periodicGenerationActionStatus = false;
 
-	uint16_t const numOfSimplyCommutatedParams = request.readUint16();
+	newStructure.parameters_appended = request.readUint16();
 
-	for (uint16_t i = 0; i < numOfSimplyCommutatedParams; i++) {
+	for (uint16_t i = 0; i < newStructure.parameters_appended; i++) {
 		const ParameterId newParamId = request.read<ParameterId>();
 		if (newStructure.parameters_appended < ECSSMaxSimplyCommutatedParameters) {
 			newStructure.simplyCommutatedParameterIds.push_back(newParamId);
