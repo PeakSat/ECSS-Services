@@ -29,6 +29,9 @@ struct HousekeepingStructure {
      */
 	etl::vector<ParameterId, ECSSMaxSimplyCommutatedParameters> simplyCommutatedParameterIds;
 
+
+	uint16_t parameters_appended = 0;
+
 	HousekeepingStructure() = default;
 };
 

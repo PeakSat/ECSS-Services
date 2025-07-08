@@ -27,12 +27,6 @@ private:
 	void appendPeriodicPropertiesToMessage(Message& report, ParameterReportStructureId structureId);
 
 	/**
-	 * Returns true if the given parameter ID exists in the parameters contained in the housekeeping structure.
-	 */
-	static bool existsInVector(const etl::vector<uint16_t, ECSSMaxSimplyCommutatedParameters>& ids,
-	                           ParameterId parameterId);
-
-	/**
      * Initializes Housekeeping Structures with the Parameters found in the obc-software.
      * The function definition is also found in the obc-software repo.
      */
@@ -67,27 +61,12 @@ public:
 	 * @return boolean True if periodic generation of housekeeping reports is enabled, false otherwise
 	 */
 	inline bool getPeriodicGenerationActionStatus(ParameterReportStructureId id) {
-		if (hasNonExistingStructInternalError(id)) {
+		HousekeepingStructure structure = {};
+		int offset = getHousekeepingStructureById(id, structure);
+		if (offset < 0) {
 			return false;
 		}
-		HousekeepingStructure structure = {};
-		int offset = getHousekeepingStructureById(id, structure);
 		return structure.periodicGenerationActionStatus;
-	}
-
-	/**
-	 * Returns the collection interval (how often data is collected) of a Housekeeping structure.
-	 * @param id Housekeeping structure ID
-	 * @return uint32_t Integer multiples of the minimum sampling interval
-	 */
-	inline CollectionInterval getCollectionInterval(ParameterReportStructureId id) {
-		if (hasNonExistingStructInternalError(id)) {
-			const HousekeepingStructure newStructure{};
-			return newStructure.collectionInterval;
-		}
-		HousekeepingStructure structure = {};
-		int offset = getHousekeepingStructureById(id, structure);
-		return structure.collectionInterval;
 	}
 
 	/**
@@ -96,11 +75,11 @@ public:
 	 * @param status Periodic generation status of housekeeping reports
 	 */
 	inline void setPeriodicGenerationActionStatus(ParameterReportStructureId id, bool status) {
-		if (hasNonExistingStructInternalError(id)) {
-			return;
-		}
 		HousekeepingStructure structure = {};
 		int offset = getHousekeepingStructureById(id, structure);
+		if (offset < 0) {
+			return;
+		}
 		structure.periodicGenerationActionStatus = status;
 		updateHouseKeepingStruct(offset, structure);
 	}
@@ -111,26 +90,13 @@ public:
 	 * @param interval Integer multiples of the minimum sampling interval
 	 */
 	inline void setCollectionInterval(ParameterReportStructureId id, CollectionInterval interval) {
-		if (hasNonExistingStructInternalError(id)) {
-			return;
-		}
 		HousekeepingStructure structure = {};
 		int offset = getHousekeepingStructureById(id, structure);
+		if (offset < 0) {
+			return;
+		}
 		structure.collectionInterval = interval;
 		updateHouseKeepingStruct(offset, structure);
-	}
-
-	/**
-	 * Checks if the structure exists in the map.
-	 * @param id Housekeeping structure ID
-	 * @return boolean True if the structure exists, false otherwise
-	 */
-	inline bool structExists(ParameterReportStructureId id) {
-		HousekeepingStructure _structure = {};
-		if (getHousekeepingStructureById(id, _structure) > 0) {
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -142,36 +108,11 @@ public:
 	bool hasNonExistingStructExecutionError(ParameterReportStructureId id, const Message& request);
 
 	/**
-	 * Checks if the structure doesn't exist in the map and then accordingly reports error.
-	 * @param id Housekeeping structure ID
-	 * @param request Telemetry (TM) or telecommand (TC) message
-	 * @return boolean True if the structure doesn't exist, false otherwise
-	 */
-	bool hasNonExistingStructError(ParameterReportStructureId id, const Message& request);
-
-	/**
 	 * Checks if the structure doesn't exist in the map and then accordingly reports internal error.
 	 * @param id Housekeeping structure ID
 	 * @return boolean True if the structure doesn't exist, false otherwise
 	 */
 	bool hasNonExistingStructInternalError(ParameterReportStructureId id);
-
-	/**
-	 * Checks if the parameter exists in the vector and if it does it reports an error.
-	 * @param id Parameter ID
-	 * @param housekeepingStruct Housekkeping Structure
-	 * @param request Telemetry (TM) or telecommand (TC) message
-	 * @return boolean True if the parameter exists, false otherwise
-	 */
-	static bool hasAlreadyExistingParameterError(const HousekeepingStructure& housekeepingStruct, ParameterReportStructureId id, const Message& request);
-
-	/**
-	 * Checks if the struct requested exists and if it exists reports execution error.
-	 * @param id Housekeeping structure ID
-	 * @param request Telemetry (TM) or telecommand (TC) message
-	 * @return boolean True if the structure exists, false otherwise
-	 */
-	bool hasAlreadyExistingStructError(ParameterReportStructureId id, const Message& request);
 
 	/**
 	 * Reports execution error if the max number of housekeeping structures is exceeded.
@@ -234,7 +175,7 @@ public:
 	/**
 	 * This function takes a structure ID as argument and constructs/stores a TM[3,10] housekeeping structure report.
 	 */
-	void housekeepingStructureReport(ParameterReportStructureId structIdToReport);
+	bool housekeepingStructureReport(ParameterReportStructureId structIdToReport);
 
 	/**
 	 * This function gets a housekeeping structure ID and stores a TM[3,25] 'housekeeping
