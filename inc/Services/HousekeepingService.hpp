@@ -213,15 +213,9 @@ public:
 	/**
 	 * This function calculates the time needed to pass until the next periodic report for each housekeeping 
 	 * structure. The function also calls the housekeeping reporting functions as needed.
-	 * 
-	 * @note Three arguments are needed for resiliency in case the function doesn't execute at the exact time that is expected
-	 * 
-	 * @param currentTime The current system time, in milliseconds.
-	 * @param previousTime The system time of the previous call of the function.
-	 * @param expectedDelay The output of this function after its last execution.
-	 * @return uint32_t The minimum amount of time until the next periodic housekeeping report, in milliseconds.
+	 *
 	 */
-	UTCTimestamp reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay);
+	void reportPendingStructures(uint16_t elapsed_seconds);
 
 	static void readHousekeepingStruct(uint8_t struct_offset, HousekeepingStructure& structure);
 

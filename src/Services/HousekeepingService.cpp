@@ -334,8 +334,10 @@ void HousekeepingService::execute(Message& message) {
 	}
 }
 
-UTCTimestamp HousekeepingService::reportPendingStructures(UTCTimestamp currentTime, UTCTimestamp previousTime, UTCTimestamp expectedDelay) {
-	UTCTimestamp nextCollection{9999, 12, 31, 23, 59, 59}; // Max timestamp
+void HousekeepingService::reportPendingStructures(const uint16_t elapsed_seconds) {
+	if (elapsed_seconds == 0) {
+		return;
+	}
 
 	for (int i=0;i<ECSSMaxHousekeepingStructures;i++) {
 		HousekeepingStructure housekeepingStructure = {};
@@ -343,29 +345,12 @@ UTCTimestamp HousekeepingService::reportPendingStructures(UTCTimestamp currentTi
 		if (!housekeepingStructure.periodicGenerationActionStatus) {
 			continue;
 		}
-		if (housekeepingStructure.collectionInterval == 0) {
-			housekeepingParametersReport(housekeepingStructure.structureId);
-			nextCollection = currentTime;;
-			continue;
-		}
-		const uint64_t currentSeconds = currentTime.toEpochSeconds();
-		const uint64_t previousSeconds = previousTime.toEpochSeconds();
-		const uint64_t delaySeconds = expectedDelay.toEpochSeconds();
-		const uint64_t interval = housekeepingStructure.collectionInterval;
 
-		if (currentSeconds != 0 && (currentSeconds % interval == 0 ||
-									(previousSeconds + delaySeconds) % interval == 0)) {
+		if ((elapsed_seconds % housekeepingStructure.collectionInterval) == 0) {
+			// LOG_DEBUG<<"Reporting housekeeping structure with ID: "<<housekeepingStructure.structureId;
 			housekeepingParametersReport(housekeepingStructure.structureId);
-									}
-
-		uint64_t secondsUntilNextCollection = interval - (currentSeconds % interval);
-		const UTCTimestamp structureTimeToCollection = currentTime + std::chrono::seconds(secondsUntilNextCollection);
-		if (nextCollection > structureTimeToCollection) {
-			nextCollection = structureTimeToCollection;
 		}
 	}
-
-	return nextCollection;
 }
 
 bool HousekeepingService::hasRequestedAppendToEnabledHousekeepingError(const HousekeepingStructure& housekeepingStruct, const Message& request) {
