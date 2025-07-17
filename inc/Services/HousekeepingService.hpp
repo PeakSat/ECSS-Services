@@ -215,13 +215,15 @@ public:
 	 * structure. The function also calls the housekeeping reporting functions as needed.
 	 *
 	 */
-	void reportPendingStructures(uint16_t elapsed_seconds);
+	uint32_t reportPendingStructures(uint32_t elapsed_time_s);
 
 	static void readHousekeepingStruct(uint8_t struct_offset, HousekeepingStructure& structure);
 
 	static void updateHouseKeepingStruct(uint8_t struct_offset, HousekeepingStructure structure);
 
 	static int getHousekeepingStructureById(uint16_t structure_id, HousekeepingStructure& structure);
+
+	void initialiseHousekeepingTimers();
 
 	/**
 	 * It is responsible to call the suitable function that executes a TC packet. The source of that packet

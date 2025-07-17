@@ -53,6 +53,16 @@ void parseUint8ArrayFromHousekeepingStructure(HousekeepingStructure structure_in
 	}
 }
 
+uint32_t _housekeeping_struct_timers[ECSSMaxHousekeepingStructures] = {0};
+
+void HousekeepingService::initialiseHousekeepingTimers() {
+	for (int i=0;i<ECSSMaxHousekeepingStructures;i++) {
+		HousekeepingStructure housekeepingStructure = {};
+		readHousekeepingStruct(i, housekeepingStructure);
+		_housekeeping_struct_timers[i] = housekeepingStructure.collectionInterval;
+	}
+}
+
 void HousekeepingService::readHousekeepingStruct(uint8_t struct_offset, HousekeepingStructure& structure) {
 	etl::array<uint8_t, MemoryFilesystem::MRAM_DATA_BLOCK_SIZE-1> _read_arr = {0};
 	etl::span<uint8_t> _read_span(_read_arr);
@@ -334,23 +344,26 @@ void HousekeepingService::execute(Message& message) {
 	}
 }
 
-void HousekeepingService::reportPendingStructures(const uint16_t elapsed_seconds) {
-	if (elapsed_seconds == 0) {
-		return;
-	}
-
+uint32_t HousekeepingService::reportPendingStructures(const uint32_t elapsed_time_s) {
+	uint32_t shortest_expiring_timer = 0xFFFFFFFF;
 	for (int i=0;i<ECSSMaxHousekeepingStructures;i++) {
-		HousekeepingStructure housekeepingStructure = {};
-		readHousekeepingStruct(i, housekeepingStructure);
-		if (!housekeepingStructure.periodicGenerationActionStatus) {
-			continue;
-		}
-
-		if ((elapsed_seconds % housekeepingStructure.collectionInterval) == 0) {
-			// LOG_DEBUG<<"Reporting housekeeping structure with ID: "<<housekeepingStructure.structureId;
+		if (_housekeeping_struct_timers[i]> elapsed_time_s) {
+			_housekeeping_struct_timers[i] -= elapsed_time_s;
+		}else {
+			HousekeepingStructure housekeepingStructure = {};
+			readHousekeepingStruct(i, housekeepingStructure);
+			if (!housekeepingStructure.periodicGenerationActionStatus) {
+				_housekeeping_struct_timers[i] = housekeepingStructure.collectionInterval;
+				continue;
+			}
 			housekeepingParametersReport(housekeepingStructure.structureId);
+			_housekeeping_struct_timers[i] = housekeepingStructure.collectionInterval;
+		}
+		if (_housekeeping_struct_timers[i] < shortest_expiring_timer) {
+			shortest_expiring_timer = _housekeeping_struct_timers[i];
 		}
 	}
+	return shortest_expiring_timer;
 }
 
 bool HousekeepingService::hasRequestedAppendToEnabledHousekeepingError(const HousekeepingStructure& housekeepingStruct, const Message& request) {
