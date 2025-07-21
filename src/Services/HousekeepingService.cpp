@@ -155,8 +155,12 @@ void HousekeepingService::enablePeriodicHousekeepingParametersReport(Message& re
 	uint8_t const numOfStructIds = request.readUint8();
 	for (uint8_t i = 0; i < numOfStructIds; i++) {
 		const ParameterReportStructureId structIdToEnable = request.read<ParameterReportStructureId>();
-		setPeriodicGenerationActionStatus(structIdToEnable, true);
+		bool status = setPeriodicGenerationActionStatus(structIdToEnable, true);
+		if (!status) {
+			Services.requestVerification.failStartExecutionVerification(request, SpacecraftErrorCode::OBDH_ERROR_REQUESTED_NON_EXISTING_STRUCTURE);
+		}
 	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void HousekeepingService::disablePeriodicHousekeepingParametersReport(Message& request) {
@@ -167,8 +171,12 @@ void HousekeepingService::disablePeriodicHousekeepingParametersReport(Message& r
 	uint8_t const numOfStructIds = request.readUint8();
 	for (uint8_t i = 0; i < numOfStructIds; i++) {
 		const ParameterReportStructureId structIdToDisable = request.read<ParameterReportStructureId>();
-		setPeriodicGenerationActionStatus(structIdToDisable, false);
+		bool status = setPeriodicGenerationActionStatus(structIdToDisable, false);
+		if (!status) {
+			Services.requestVerification.failStartExecutionVerification(request, SpacecraftErrorCode::OBDH_ERROR_REQUESTED_NON_EXISTING_STRUCTURE);
+		}
 	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void HousekeepingService::reportHousekeepingStructures(Message& request) {
@@ -270,8 +278,12 @@ void HousekeepingService::modifyCollectionIntervalOfStructures(Message& request)
 	for (uint8_t i = 0; i < numOfTargetStructs; i++) {
 		const ParameterReportStructureId targetStructId = request.read<ParameterReportStructureId>();
 		const CollectionInterval newCollectionInterval = request.read<CollectionInterval>();
-		setCollectionInterval(targetStructId, newCollectionInterval);
+		bool status = setCollectionInterval(targetStructId, newCollectionInterval);
+		if (!status) {
+			Services.requestVerification.failStartExecutionVerification(request, SpacecraftErrorCode::OBDH_ERROR_REQUESTED_NON_EXISTING_STRUCTURE);
+		}
 	}
+	Services.requestVerification.successCompletionExecutionVerification(request);
 }
 
 void HousekeepingService::reportHousekeepingPeriodicProperties(Message& request) {

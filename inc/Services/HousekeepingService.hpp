@@ -74,14 +74,15 @@ public:
 	 * @param id Housekeeping structure ID
 	 * @param status Periodic generation status of housekeeping reports
 	 */
-	inline void setPeriodicGenerationActionStatus(ParameterReportStructureId id, bool status) {
+	[[nodiscard]] inline bool setPeriodicGenerationActionStatus(ParameterReportStructureId id, bool status) {
 		HousekeepingStructure structure = {};
 		int offset = getHousekeepingStructureById(id, structure);
 		if (offset < 0) {
-			return;
+			return false;
 		}
 		structure.periodicGenerationActionStatus = status;
 		updateHouseKeepingStruct(offset, structure);
+		return true;
 	}
 
 	/**
@@ -89,14 +90,15 @@ public:
 	 * @param id Housekeeping structure ID
 	 * @param interval Integer multiples of the minimum sampling interval
 	 */
-	inline void setCollectionInterval(ParameterReportStructureId id, CollectionInterval interval) {
+	[[nodiscard]] inline bool setCollectionInterval(ParameterReportStructureId id, CollectionInterval interval) {
 		HousekeepingStructure structure = {};
 		int offset = getHousekeepingStructureById(id, structure);
 		if (offset < 0) {
-			return;
+			return false;
 		}
 		structure.collectionInterval = interval;
 		updateHouseKeepingStruct(offset, structure);
+		return true;
 	}
 
 	/**
