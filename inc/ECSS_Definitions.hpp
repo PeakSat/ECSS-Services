@@ -34,7 +34,7 @@ inline constexpr uint16_t CCSDSPrimaryHeaderSize = 6U;
 /**
  * The size of each ECSS Telemetry packet's secondary header
  */
-inline constexpr uint16_t ECSSSecondaryTMHeaderSize = 11U;
+inline constexpr uint16_t ECSSSecondaryTMHeaderSize = 15U;
 
 /**
  * The size of each ECSS Telecommand packet's secondary header
