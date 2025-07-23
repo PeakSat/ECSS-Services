@@ -238,6 +238,10 @@ etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> MessageParser::c
 		header[8] = static_cast<uint8_t>((ticks >> 16) & 0xFFU);
 		header[9] = static_cast<uint8_t>((ticks >> 8) & 0xFFU);
 		header[10] = static_cast<uint8_t>(ticks & 0xFFU);
+		header[11] = 0;
+		header[12] = 0;
+		header[13] = 0;
+		header[14] = 0;
 	}
 
 	String<CCSDSMaxMessageSize> outData(header.data(), ((message.packet_type_ == Message::TM) ? ECSSSecondaryTMHeaderSize : ECSSSecondaryTCHeaderSize));
