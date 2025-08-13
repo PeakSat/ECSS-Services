@@ -13,8 +13,6 @@
 
 class EventReportService : public Service {
 private:
-	static constexpr uint16_t numberOfEvents = 15;
-	etl::bitset<numberOfEvents> stateOfEvents;
 	static constexpr uint16_t LastElementID = std::numeric_limits<uint16_t>::max();
 
 public:
@@ -122,9 +120,14 @@ public:
 		PayloadUartError = 34,
 		ImageDownloaded = 35,
 		NANDError = 36,
+		TCWatchdogTimeout = 37,
+		SatResetFailed = 38,
+		EventMax = 39
 
 	};
 
+	static constexpr uint16_t numberOfEvents = static_cast<uint16_t>(EventMax);
+	etl::bitset<numberOfEvents> stateOfEvents;
 	/**
      * Validates the parameters for an event.
      * Ensures the event ID is within the allowable range and not 0.
