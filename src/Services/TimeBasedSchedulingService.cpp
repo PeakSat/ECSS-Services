@@ -118,7 +118,7 @@ SpacecraftErrorCode TimeBasedSchedulingService::recoverScheduledActivity(Schedul
 
 	auto status = MemoryManager::readFromFile(MemoryFilesystem::SCHED_TC_FILENAME, entryBufferSpan, _start_mram_block, _end_mram_block, _read_count);
 
-	if (status != Memory_Errno::NONE || _read_count!=MAX_ENTRY_SIZE) {
+	if (status != Memory_Errno::NONE || _read_count>=MAX_ENTRY_SIZE) {
 		LOG_ERROR<<"[TC_SCHEDULING] Unable to recover scheduled activity";
 		return SpacecraftErrorCode::OBDH_ERROR_CORRUPTED_TC_SCHEDULE_FILE;
 	}
@@ -334,9 +334,10 @@ void TimeBasedSchedulingService::insertActivities(Message& request) {
 	}
 
 	uint16_t iterationCount = request.readUint16();
+	const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
+	const UTCTimestamp releaseTime(request.readUTCTimestamp());
 	while (iterationCount != 0) {
-		const UTCTimestamp currentTime(TimeGetter::getCurrentTimeUTC());
-		const UTCTimestamp releaseTime(request.readUTCTimestamp());
+
 
 		if ((releaseTime < (currentTime + ECSSTimeMarginForActivation))) {
 			LOG_ERROR<<"[TC_SCHEDULING] Rejected scheduled TC due to short release time";

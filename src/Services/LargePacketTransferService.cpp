@@ -71,6 +71,7 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 void LargePacketTransferService::firstUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
 
+
 	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
 		return;
 	}
@@ -108,9 +109,9 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 	// Extract size using ETL byte operations (big-endian)
 	uint32_t size = (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE]) << 24) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
-	                      (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 1]) << 16) |
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 2]) << 8) |
+	                (static_cast<uint32_t>(payloadSpan[FILENAME_SIZE + 3]));
 	message.readPosition += 4;
 
 	// Store the file size
@@ -133,6 +134,11 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 		return;
 	}
 
+	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID,
+	                        &reset)) {
+		return;
+	}
+
 	etl::copy_n(filename_sized.begin(), filename_sized.size(), localFilename.begin());
 
 	// TODO: start timer
@@ -147,9 +153,10 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 		return;
 	}
 	uint16_t sequenceNumber = message.read<PartSequenceNum>() + 1;
+	LOG_DEBUG << " ------> sequenceNumber: " << sequenceNumber;
 
 	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
-		// return;
+		return;
 	}
 
 	// Validate remaining data
@@ -162,7 +169,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	// safely create the span
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
 	if (!validateSequenceNumber(message, sequenceNumber)) {
-		// return;
+		return;
 	}
 
 	uint32_t storedCount = 0U;
@@ -211,7 +218,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	// }
 
 	// safely create the span
-	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_-message.readPosition);
+	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_ - message.readPosition);
 
 
 	if (!validateSequenceNumber(message, sequenceNumber)) {
@@ -251,6 +258,9 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	if (storedSize != calculatedSize) {
 		// report back - implementation specific
 	}
+
+	LOG_DEBUG<<"{{{{{ STORED SIZE: "<<storedSize;
+	LOG_DEBUG<<"{{{{{ Calculated Size: "<<calculatedSize;
 
 	uint16_t resetSequenceNumber = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &resetSequenceNumber)) {
@@ -304,11 +314,12 @@ bool LargePacketTransferService::validateSequenceNumber(Message& message, const 
 	                        &storedSequenceNum)) {
 		return false;
 	}
+	LOG_DEBUG << "----> stored" << storedSequenceNum + 1;
 
 	if (storedSequenceNum + 1 != currentSequence) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return false;
+		// return false;
 	}
 
 	return true;
