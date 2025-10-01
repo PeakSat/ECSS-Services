@@ -67,6 +67,19 @@ void LargePacketTransferService::lastDownlinkPartReport(LargeMessageTransactionI
 	storeMessage(report, report.data_size_message_);
 }
 
+void LargePacketTransferService::uplinkAbortionReport(LargeMessageTransactionId largeMessageTransactionIdentifier, const SpacecraftErrorCode abortionReason) const {
+
+	Message report = createTM(LargePacketTransferService::MessageType::UplinkAborted);
+
+	// Append large message transaction identifier
+	report.append<LargeMessageTransactionId>(largeMessageTransactionIdentifier);
+
+	// Append failure reason using SpacecraftErrorCode
+	report.append<uint16_t>(static_cast<uint16_t>(abortionReason));
+
+	storeMessage(report, report.data_size_message_);
+}
+
 
 void LargePacketTransferService::firstUplinkPart(Message& message) {
 	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
@@ -237,7 +250,6 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
-
 
 bool LargePacketTransferService::validateUplinkMessage(Message& message, const LargePacketTransferService::MessageType expectedType,
                                                        LargeMessageTransactionId& transactionId) {
