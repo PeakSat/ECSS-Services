@@ -36,7 +36,7 @@ public:
 	};
 
 	enum class UplinkLargeMessageTransactionIdentifiers : uint16_t {
-		AtlasMcuFirmware = 256U,
+		AtlasMcuFirmware = 33U,
 		AtlasSoftCpuFirmware = 80U,
 		AtlasBitStream = 90U,
 		ScheduledTC = 130U,
