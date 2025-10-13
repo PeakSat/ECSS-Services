@@ -122,6 +122,7 @@ public:
 		NANDError = 36,
 		TCWatchdogTimeout = 37,
 		SatResetFailed = 38,
+		ADCS_Error = 39,
 		EventMax = 39
 
 	};

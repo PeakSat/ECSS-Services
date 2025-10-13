@@ -149,7 +149,7 @@ inline constexpr uint8_t ECSSFunctionNameLength = 32;
  * The maximum length of the argument of a function
  * @see FunctionManagementService
  */
-inline constexpr uint8_t ECSSFunctionMaxArgLength = 32;
+inline constexpr uint8_t ECSSFunctionMaxArgLength = 255;
 
 /**
  * @brief The maximum size of a log message
@@ -247,7 +247,7 @@ inline constexpr struct {
 /**
  * Maximum number of ST[12] Parameter Monitoring Definitions.
  */
-inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 4;
+inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 6;
 
 /**
  * @brief Frequency at which the checkAll method is called
