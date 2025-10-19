@@ -123,7 +123,10 @@ public:
 		TCWatchdogTimeout = 37,
 		SatResetFailed = 38,
 		ADCS_Error = 39,
-		EventMax = 39
+		ADCSAngratesHigh = 40,
+		ADCSEstNone = 41,
+		ADCSConNone = 42,
+		EventMax = 43
 
 	};
 
