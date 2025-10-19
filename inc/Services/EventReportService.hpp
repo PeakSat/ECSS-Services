@@ -126,7 +126,10 @@ public:
 		ADCSAngratesHigh = 40,
 		ADCSEstNone = 41,
 		ADCSConNone = 42,
-		EventMax = 43
+		PayloadTimerFailure = 43,
+		PayloadTimerStartFailure = 43,
+		PayloadTimerStopFailure = 44,
+		EventMax = 44
 
 	};
 
