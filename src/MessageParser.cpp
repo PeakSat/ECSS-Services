@@ -196,6 +196,7 @@ SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, Messag
 	message.messageType = messageType;
 	message.source_ID_ = sourceId;
 	etl::copy_n(data + ECSSSecondaryTCHeaderSize, message.data_size_ecss_, message.data.begin());
+	message.data_size_message_ = message.data_size_ecss_;
 
 	return GENERIC_ERROR_NONE;
 }
@@ -344,6 +345,7 @@ SpacecraftErrorCode MessageParser::parseECSSTMHeader(const uint8_t* data, uint16
 	message.messageType = messageType;
 	std::copy(data + ECSSSecondaryTMHeaderSize, data + length, message.data.begin());
 	message.data_size_ecss_ = length - ECSSSecondaryTMHeaderSize;
+	message.data_size_message_ = message.data_size_ecss_;
 
 	return GENERIC_ERROR_NONE;
 }
