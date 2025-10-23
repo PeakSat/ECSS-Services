@@ -135,6 +135,11 @@ inline constexpr uint8_t ECSSMaxDeltaOfReleaseTime = 60;
 inline constexpr uint16_t ECSSMaxSimplyCommutatedParameters = 20;
 
 /**
+ * The size of each housekeeping structure in the default array (structureId + collectionInterval(2) + isPeriodic + count + parameters)
+ */
+inline constexpr uint8_t ECSSHousekeepingStructureArraySize = 5 + ECSSMaxSimplyCommutatedParameters;
+
+/**
  * The number of functions supported by the \ref FunctionManagementService
  */
 inline constexpr uint8_t ECSSFunctionMapSize = 5;
@@ -198,7 +203,7 @@ inline constexpr uint16_t ECSSPacketStoreIdSize = 15;
 /**
  * @brief Defines the max number of housekeeping structs that the housekeeping service can contain
  */
-inline constexpr uint8_t ECSSMaxHousekeepingStructures = 24;
+inline constexpr uint8_t ECSSMaxHousekeepingStructures = 45;
 
 /**
  * The max number of controlled application processes

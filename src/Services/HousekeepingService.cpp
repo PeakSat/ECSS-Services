@@ -18,6 +18,7 @@ void parseHousekeepingStructureFromUint8Array(etl::span<uint8_t> array_input, Ho
 
 	structure_output.parameters_appended = static_cast<uint16_t>((array_input[_read_index++]<<8)) | array_input[_read_index++];
 
+	structure_output.simplyCommutatedParameterIds.clear();
 	for (int i=0;i<structure_output.parameters_appended;i++) {
 		uint16_t parameter = static_cast<uint16_t>((array_input[_read_index++]<<8)) | array_input[_read_index++];
 		structure_output.simplyCommutatedParameterIds.push_back(parameter);
@@ -71,8 +72,8 @@ void HousekeepingService::readHousekeepingStruct(uint8_t struct_offset, Housekee
 	if (status!=Memory_Errno::NONE && status!=Memory_Errno::REACHED_EOF) {
 		LOG_ERROR<<"[HOUSEKEEPING_STRUCT] Error recovering housekeeping struct "<<struct_offset<<" returning to default";
 		uint8_t _read_index = 0;
-		for (int i=0;i<25;i++) {
-			uint16_t _read_value = default_housekeeping_structures[(struct_offset*25)+i];
+		for (int i=0;i<ECSSHousekeepingStructureArraySize;i++) {
+			uint16_t _read_value = default_housekeeping_structures[(struct_offset*ECSSHousekeepingStructureArraySize)+i];
 			_read_arr[_read_index++] = _read_value >> 8;
 			_read_arr[_read_index++] = _read_value & 0xFF;
 		}
@@ -125,7 +126,8 @@ void HousekeepingService::createHousekeepingReportStructure(Message& request) {
 			newStructure.simplyCommutatedParameterIds.push_back(newParamId);
 		}
 	}
-	updateHouseKeepingStruct((idToCreate%ECSSMaxHousekeepingStructures),newStructure);
+	updateHouseKeepingStruct((idToCreate%
+		ECSSMaxHousekeepingStructures),newStructure);
 }
 
 void HousekeepingService::deleteHousekeepingReportStructure(Message& request) {
@@ -224,7 +226,9 @@ void HousekeepingService::housekeepingParametersReport(ParameterReportStructureI
 	Message housekeepingReport = createTM(MessageType::HousekeepingParametersReport);
 
 	housekeepingReport.append<ParameterReportStructureId>(structureId);
+	auto structID = static_cast<HousekeepingStructId>(structureId);
 	for (size_t i=0;i<housekeepingStructure.parameters_appended;i++) {
+		auto paramId =housekeepingStructure.simplyCommutatedParameterIds[i];
 		Services.parameterManagement.appendParameterToMessage(housekeepingReport, housekeepingStructure.simplyCommutatedParameterIds[i]);
 	}
 	storeMessage(housekeepingReport, housekeepingReport.data_size_message_);
