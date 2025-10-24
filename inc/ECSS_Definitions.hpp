@@ -203,7 +203,7 @@ inline constexpr uint16_t ECSSPacketStoreIdSize = 15;
 /**
  * @brief Defines the max number of housekeeping structs that the housekeeping service can contain
  */
-inline constexpr uint8_t ECSSMaxHousekeepingStructures = 45;
+inline constexpr uint8_t ECSSMaxHousekeepingStructures = 50;
 
 /**
  * The max number of controlled application processes
