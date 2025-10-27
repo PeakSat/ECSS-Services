@@ -143,6 +143,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	etl::copy_n(filename_sized.begin(), filename_sized.size(), localFilename.begin());
 
 	// TODO: start timer
+	LOG_DEBUG<<"[LTF] sequence number: "<<partSequenceNumber;
 
 	Services.requestVerification.successAcceptanceVerification(message);
 }
@@ -170,10 +171,12 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 
 	// safely create the span
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
-	if (!validateSequenceNumber(message, sequenceNumber)) {
-		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-		return;
-	}
+	// if (!validateSequenceNumber(message, sequenceNumber)) {
+	// 	Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
+	// 	return;
+	// }
+
+	LOG_DEBUG<<"[LTF] sequence number: "<<sequenceNumber;
 
 	const uint32_t offset = (ECSSMaxFixedOctetStringSize / (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U)) *
 	                        (static_cast<uint32_t>(sequenceNumber));
@@ -218,9 +221,9 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, message.data_size_ecss_ - message.readPosition);
 
 
-	if (!validateSequenceNumber(message, sequenceNumber)) {
-		return;
-	}
+	// if (!validateSequenceNumber(message, sequenceNumber)) {
+	// 	return;
+	// }
 
 	const uint32_t offset = (ECSSMaxFixedOctetStringSize / (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U)) *
 	                        (static_cast<uint32_t>(sequenceNumber));
@@ -251,6 +254,8 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 		// report back - implementation specific
 	}
 
+	LOG_DEBUG<<"[LTF] sequence number: "<<sequenceNumber;
+
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
 
@@ -272,7 +277,7 @@ bool LargePacketTransferService::validateUplinkMessage(Message& message, const L
 	return true;
 }
 bool LargePacketTransferService::validateStoredTransactionId(const Message& message, const LargeMessageTransactionId expectedId) {
-	uint8_t storedId = 0xFF;
+	uint16_t storedId = 0xFFFF;
 	auto resStoredId = MemoryManager::getParameter(
 	    PeakSatParameters::OBDH_LARGE_MESSAGE_TRANSACTION_IDENTIFIER_ID, &storedId);
 
