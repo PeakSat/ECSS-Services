@@ -82,7 +82,7 @@ void LargePacketTransferService::uplinkAbortionReport(LargeMessageTransactionId 
 
 
 void LargePacketTransferService::firstUplinkPart(Message& message) {
-	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
+	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
 
 	if (!validateUplinkMessage(message, MessageType::FirstUplinkPartReport, largeMessageTransactionIdentifier)) {
 		return;
@@ -150,16 +150,15 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 
 void LargePacketTransferService::intermediateUplinkPart(Message& message) {
-	LargeMessageTransactionId largeMessageTransactionIdentifier = 0U;
+	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
+
+	// if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
+	// 	return;
+	// }
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
-
 	if (!validateUplinkMessage(message, MessageType::IntermediateUplinkPartReport, largeMessageTransactionIdentifier)) {
 		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-		return;
-	}
-
-	if (!validateStoredTransactionId(message, largeMessageTransactionIdentifier)) {
 		return;
 	}
 
@@ -171,10 +170,10 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 
 	// safely create the span
 	etl::span<const uint8_t> DataSpan(message.data.begin() + message.readPosition, ECSSMaxFixedOctetStringSize);
-	// if (!validateSequenceNumber(message, sequenceNumber)) {
-	// 	Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-	// 	return;
-	// }
+	if (!validateSequenceNumber(message, sequenceNumber)) {
+		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
+		// return;
+	}
 
 	LOG_DEBUG<<"[LTF] sequence number: "<<sequenceNumber;
 
@@ -267,7 +266,7 @@ bool LargePacketTransferService::validateUplinkMessage(Message& message, const L
 		return false;
 	}
 
-	transactionId = message.read<LargeMessageTransactionId>();
+	// transactionId = message.read<LargeMessageTransactionId>();
 	if (!isValidUpLinkIdentifier(static_cast<UplinkLargeMessageTransactionIdentifiers>(transactionId))) {
 		Services.requestVerification.failAcceptanceVerification(
 		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
@@ -296,7 +295,7 @@ bool LargePacketTransferService::validateStoredTransactionId(const Message& mess
 	return true;
 }
 
-bool LargePacketTransferService::validateSequenceNumber(Message& message, const uint16_t currentSequence) {
+bool LargePacketTransferService::validateSequenceNumber(Message& message, uint16_t currentSequence) {
 	uint32_t storedSequenceNum = 0U;
 	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID,
 	                        &storedSequenceNum)) {
@@ -304,7 +303,14 @@ bool LargePacketTransferService::validateSequenceNumber(Message& message, const 
 	}
 
 	if (storedSequenceNum + 1 != currentSequence) {
-		Services.requestVerification.failAcceptanceVerification(message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
+		uint16_t discontinuity_counter = 0;
+		MemoryManager::getParameter(PeakSatParameters::OBDH_LFT_DISCONTINUITY_COUNTER_ID, &discontinuity_counter);
+		discontinuity_counter++;
+		MemoryManager::setParameter(PeakSatParameters::OBDH_LFT_DISCONTINUITY_COUNTER_ID, &discontinuity_counter);
+
+		MemoryManager::setParameter(PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &currentSequence);
+
+		// Services.requestVerification.failAcceptanceVerification(message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
 		return false;
 	}
 

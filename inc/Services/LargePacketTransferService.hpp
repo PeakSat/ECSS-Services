@@ -40,7 +40,7 @@ public:
 		AtlasSoftCpuFirmware = 80U,
 		AtlasBitStream = 90U,
 		ScheduledTC = 130U,
-		ObcFirmware = 150U,
+		ObcFirmware = 140U,
 	};
 	using UplinkLargeMessageTransactionIdentifiers_t = std::underlying_type<UplinkLargeMessageTransactionIdentifiers>;
 
