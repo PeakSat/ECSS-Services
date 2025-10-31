@@ -132,7 +132,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 	}
 
 	// Validate filename matches transaction ID
-	auto validateFile = static_cast<uint16_t>(MemoryManagerHelpers::getFileTransferIdFromFilename(filename_sized.data()));
+	const auto validateFile = static_cast<uint16_t>(MemoryManagerHelpers::getFileTransferIdFromFilename(filename_sized.data()));
 	if (validateFile != largeMessageTransactionIdentifier) {
 		resetTransferParameters();
 		Services.requestVerification.failAcceptanceVerification(

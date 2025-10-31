@@ -154,7 +154,7 @@ inline constexpr uint8_t ECSSFunctionNameLength = 32;
  * The maximum length of the argument of a function
  * @see FunctionManagementService
  */
-inline constexpr uint8_t ECSSFunctionMaxArgLength = 255;
+inline constexpr uint8_t ECSSFunctionMaxArgLength = 175;
 
 /**
  * @brief The maximum size of a log message
