@@ -163,13 +163,13 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 
 	uint16_t sequenceNumber = message.read<PartSequenceNum>();
 	LOG_DEBUG << "[LTF] sequence number got: " << sequenceNumber;
-	if (!validateSequenceNumber(message, sequenceNumber)) {  // will store sequence number at the correct offset even if out of order
-		// Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-		// return;
+	if (!validateSequenceNumber(message, sequenceNumber)) { // will store sequence number at the correct offset even if out of order
+		                                                    // Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
+		                                                    // return;
 	}
 
 	// Validate remaining data
-	if (message.readPosition + ECSSMaxFixedOctetStringSize > message.data_size_ecss_) { // questionable
+	if (message.readPosition + ECSSMaxFixedOctetStringSize != message.data_size_ecss_) {   // Intermediate parts must have EXACTLY 127 bytes
 		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
 		return;
 	}
@@ -248,10 +248,7 @@ void LargePacketTransferService::lastUplinkPart(Message& message) {
 		return;
 	}
 
-	const uint32_t calculatedSize = (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1U) *
-	                                (static_cast<uint32_t>(sequenceNumber)) *
-	                                ECSSMaxFixedOctetStringSize;
-
+	const uint32_t calculatedSize = ECSSMaxFixedOctetStringSize * (static_cast<uint32_t>(sequenceNumber));
 	if (storedSize != calculatedSize) {
 		// report back - implementation specific
 	}
@@ -303,7 +300,10 @@ bool LargePacketTransferService::validateSequenceNumber(Message& message, uint16
 	                        &storedSequenceNum)) {
 		return false;
 	}
-
+	if (currentSequence == 0 && storedSequenceNum == 0) {
+		// First data packet is allowed to be 0
+		return true;
+	}
 	if (storedSequenceNum + 1 != currentSequence) {
 		uint16_t discontinuity_counter = 0;
 		MemoryManager::getParameter(PeakSatParameters::OBDH_LFT_DISCONTINUITY_COUNTER_ID, &discontinuity_counter);
