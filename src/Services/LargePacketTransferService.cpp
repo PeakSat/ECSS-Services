@@ -443,10 +443,15 @@ void LargePacketTransferService::handleFlashIntermediateParts(Message& message) 
 
 	// Write to flash after receiving the last part of the page
 	if (partIndex == (PARTS_PER_FLASH_PAGE - 1)) {
-		const uint16_t flashPageNumber = sequenceNumber / PARTS_PER_FLASH_PAGE;
-		const auto res = flash_write_page(flashPageNumber, localFlashPageBytes.data(), I_FLASH_PAGE_SIZE_U32);
+		const uint16_t logicalPage = sequenceNumber / PARTS_PER_FLASH_PAGE;
+		const uint16_t absolutePage = FLASH_IOP_FLAGS_PAGE + logicalPage;
+
+		const auto res = flash_write_page(absolutePage,
+										   localFlashPageBytes.data(),
+										   I_FLASH_PAGE_SIZE_U32);
 		if (res != Memory_Errno::NONE) {
-			Services.requestVerification.failProgressExecutionVerification(message, getSpacecraftErrorCodeFromMemoryError(res), sequenceNumber);
+			Services.requestVerification.failProgressExecutionVerification(
+				message, getSpacecraftErrorCodeFromMemoryError(res), sequenceNumber);
 			return;
 		}
 	}
@@ -535,7 +540,13 @@ void LargePacketTransferService::handleFlashLastPart(Message& message) {
 
 	// Always write the flash page for last part
 	const uint16_t flashPageNumber = sequenceNumber / PARTS_PER_FLASH_PAGE;
-	const auto res = flash_write_page(flashPageNumber, localFlashPageBytes.data(), I_FLASH_PAGE_SIZE_U32);
+	const uint16_t logicalPage = sequenceNumber / PARTS_PER_FLASH_PAGE;
+	const uint16_t absolutePage = FLASH_IOP_FLAGS_PAGE + logicalPage;
+
+	const auto res = flash_write_page(absolutePage,
+									   localFlashPageBytes.data(),
+									   I_FLASH_PAGE_SIZE_U32);
+
 	if (res != Memory_Errno::NONE) {
 		Services.requestVerification.failProgressExecutionVerification(message, getSpacecraftErrorCodeFromMemoryError(res), sequenceNumber);
 		return;
