@@ -557,7 +557,9 @@ void LargePacketTransferService::handleFlashLastPart(Message& message) {
 		Services.requestVerification.failCompletionExecutionVerification(message, OBDH_ERROR_MEMORY_UNKNOWN);
 		return;
 	}
-
+	uint32_t crc = 0;
+	MemoryManager::calculateFlashFileCRC32(localFilename.data(), 835568  ,crc);
+	LOG_DEBUG << "[LTF] Written flash file crc32: " << crc;
 	Services.requestVerification.successCompletionExecutionVerification(message);
 }
 
