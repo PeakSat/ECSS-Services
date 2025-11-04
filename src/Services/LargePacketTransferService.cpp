@@ -152,7 +152,7 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	if (isFlashFile()) {
-		handleFlashLastPart(message);
+		handleFlashIntermediateParts(message);
 		return;
 	}
 	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
@@ -407,7 +407,7 @@ void LargePacketTransferService::handleFlashIntermediateParts(Message& message) 
 	}
 
 	const uint16_t partIndex = sequenceNumber % PARTS_PER_FLASH_PAGE;
-	;
+
 
 	if (partIndex > (PARTS_PER_FLASH_PAGE - 1)) {
 		return; // expecting 4 parts per page
@@ -541,7 +541,7 @@ void LargePacketTransferService::handleFlashLastPart(Message& message) {
 	// Always write the flash page for last part
 	const uint16_t flashPageNumber = sequenceNumber / PARTS_PER_FLASH_PAGE;
 	const uint16_t logicalPage = sequenceNumber / PARTS_PER_FLASH_PAGE;
-	const uint16_t absolutePage = FLASH_IOP_FLAGS_PAGE + logicalPage;
+	const uint16_t absolutePage = SECONDARY_IMAGE_START_ADDRESS + logicalPage;
 
 	const auto res = flash_write_page(absolutePage,
 									   localFlashPageBytes.data(),
