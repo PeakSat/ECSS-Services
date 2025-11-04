@@ -129,7 +129,9 @@ public:
 		PayloadTimerFailure = 43,
 		PayloadTimerStartFailure = 43,
 		PayloadTimerStopFailure = 44,
-		EventMax = 44
+		HeartbeatTimeout = 45,
+		HeartbeatTimerFailure = 46,
+		EventMax = 46
 
 	};
 
