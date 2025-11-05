@@ -10,7 +10,6 @@
 #include "PMON_Handlers.hpp"
 
 #include "ServicePool.hpp"
-#include "internal_flash_driver.hpp"
 
 static_assert(ECSSMaxFixedOctetStringSize % (MemoryFilesystem::MRAM_DATA_BLOCK_SIZE - 1) == 0, "ECSSMaxFixedOctetStringSize must be a multiple of MRAM_DATA_BLOCK_SIZE");
 
@@ -151,10 +150,6 @@ void LargePacketTransferService::firstUplinkPart(Message& message) {
 
 
 void LargePacketTransferService::intermediateUplinkPart(Message& message) {
-	if (isFlashFile()) {
-		handleFlashIntermediateParts(message);
-		return;
-	}
 	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
 
 	if (!validateUplinkMessage(message, MessageType::IntermediateUplinkPartReport, largeMessageTransactionIdentifier)) {
@@ -174,7 +169,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 	}
 
 	// Validate remaining data
-	if (message.readPosition + ECSSMaxFixedOctetStringSize != message.data_size_ecss_) { // Intermediate parts must have EXACTLY 127 bytes
+	if (message.readPosition + ECSSMaxFixedOctetStringSize != message.data_size_ecss_) {   // Intermediate parts must have EXACTLY 127 bytes
 		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
 		return;
 	}
@@ -205,10 +200,7 @@ void LargePacketTransferService::intermediateUplinkPart(Message& message) {
 
 
 void LargePacketTransferService::lastUplinkPart(Message& message) {
-	if (isFlashFile()) {
-		handleFlashLastPart(message);
-		return;
-	}
+
 	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
 
 
@@ -376,191 +368,6 @@ void LargePacketTransferService::execute(Message& message) {
 			Services.requestVerification.failAcceptanceVerification(message, GENERIC_ERROR_CAN_INVALID_MESSAGE_ID);
 			break;
 	}
-}
-
-void LargePacketTransferService::handleFlashIntermediateParts(Message& message) {
-	if (!message.assertTC(ServiceType, IntermediateUplinkPartReport)) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
-	if (largeMessageTransactionIdentifier != static_cast<UplinkLargeMessageTransactionIdentifiers_t>(UplinkLargeMessageTransactionIdentifiers::ObcFirmware)) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	uint16_t sequenceNumber = message.read<PartSequenceNum>();
-	LOG_DEBUG << "[LTF] sequence number got: " << sequenceNumber;
-	uint32_t storedSequenceNum = 0U;
-	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID,
-	                        &storedSequenceNum)) {
-		return;
-	}
-	if (sequenceNumber == 0 && storedSequenceNum == 0) {
-		// First data packet is allowed to be 0
-	} else if (storedSequenceNum + 1 != sequenceNumber) {
-		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-		return;
-	}
-
-	const uint16_t partIndex = sequenceNumber % PARTS_PER_FLASH_PAGE;
-
-
-	if (partIndex > (PARTS_PER_FLASH_PAGE - 1)) {
-		return; // expecting 4 parts per page
-	}
-
-	if (partIndex == 0) {
-		localFlashPageBytes.fill(0xFFFFFFFF); // clear buffer on new batch
-	}
-
-	// Validate remaining data
-	if (message.readPosition + I_FLASH_PART_EXPECTED_BYTES != message.data_size_ecss_) { // Intermediate parts must have EXACTLY 128 bytes
-		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT, sequenceNumber);
-		return;
-	}
-
-	// Create span for the incoming 128 bytes
-	const etl::span<const uint8_t> incomingData(message.data.data() + message.readPosition, I_FLASH_PART_EXPECTED_BYTES);
-
-	// Calculate starting position in uint32_t array
-	const uint32_t baseOffset = partIndex * UINT32_PER_PART;
-	;
-
-	for (uint32_t i = 0; i < UINT32_PER_PART; i++) {
-		const size_t byteIndex = i * BYTES_PER_UINT32;
-
-		// Pack 4 bytes into big-endian uint32_t
-		localFlashPageBytes[baseOffset + i] =
-		    (static_cast<uint32_t>(incomingData[byteIndex + 0]) << (3 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 1]) << (2 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 2]) << (1 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 3]) << (0 * BITS_PER_BYTE));
-	}
-
-	// Write to flash after receiving the last part of the page
-	if (partIndex == (PARTS_PER_FLASH_PAGE - 1)) {
-		const uint16_t logicalPage = sequenceNumber / PARTS_PER_FLASH_PAGE;
-		const uint16_t absolutePage = FLASH_IOP_FLAGS_PAGE + logicalPage;
-
-		const auto res = flash_write_page(absolutePage,
-										   localFlashPageBytes.data(),
-										   I_FLASH_PAGE_SIZE_U32);
-		if (res != Memory_Errno::NONE) {
-			Services.requestVerification.failProgressExecutionVerification(
-				message, getSpacecraftErrorCodeFromMemoryError(res), sequenceNumber);
-			return;
-		}
-	}
-
-	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
-		Services.requestVerification.failProgressExecutionVerification(message, OBDH_ERROR_MEMORY_UNKNOWN, sequenceNumber);
-		return;
-	}
-
-	LOG_DEBUG << "[LTF] sequence number success: " << sequenceNumber;
-
-	Services.requestVerification.successProgressExecutionVerification(message, sequenceNumber);
-}
-
-void LargePacketTransferService::handleFlashLastPart(Message& message) {
-	if (!message.assertTC(ServiceType, LastUplinkPartReport)) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	LargeMessageTransactionId largeMessageTransactionIdentifier = message.read<LargeMessageTransactionId>();
-	if (largeMessageTransactionIdentifier != static_cast<UplinkLargeMessageTransactionIdentifiers_t>(UplinkLargeMessageTransactionIdentifiers::ObcFirmware)) {
-		Services.requestVerification.failAcceptanceVerification(
-		    message, SpacecraftErrorCode::OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	uint16_t sequenceNumber = message.read<PartSequenceNum>();
-	LOG_DEBUG << "[LTF] Last part sequence number: " << sequenceNumber;
-
-	uint32_t storedSequenceNum = 0U;
-	if (!getMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID,
-	                        &storedSequenceNum)) {
-		return;
-	}
-
-	if (storedSequenceNum + 1 != sequenceNumber) {
-		Services.requestVerification.failCompletionExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	const uint8_t partIndex = sequenceNumber % PARTS_PER_FLASH_PAGE;
-	const uint16_t remainingBytes = message.data_size_ecss_ - message.readPosition;
-
-	// Validate we have some data
-	if (remainingBytes == 0 || remainingBytes > I_FLASH_PART_EXPECTED_BYTES) {
-		Services.requestVerification.failCompletionExecutionVerification(message, OBDH_ERROR_INVALID_ARGUMENT);
-		return;
-	}
-
-	// Create span for the incoming data
-	const etl::span<const uint8_t> incomingData(message.data.data() + message.readPosition, remainingBytes);
-
-	// Calculate starting position in uint32_t array
-	const uint32_t baseOffset = partIndex * UINT32_PER_PART;
-
-	// Calculate how many complete uint32_t we can pack
-	const uint32_t completeUint32Count = remainingBytes / BYTES_PER_UINT32;
-
-	// Pack complete uint32_t values
-	for (uint32_t i = 0; i < completeUint32Count; i++) {
-		const size_t byteIndex = i * BYTES_PER_UINT32;
-
-		localFlashPageBytes[baseOffset + i] =
-		    (static_cast<uint32_t>(incomingData[byteIndex + 0]) << (3 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 1]) << (2 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 2]) << (1 * BITS_PER_BYTE)) |
-		    (static_cast<uint32_t>(incomingData[byteIndex + 3]) << (0 * BITS_PER_BYTE));
-	}
-
-	// Handle remaining bytes (if not multiple of 4)
-	const uint32_t remainingPartialBytes = remainingBytes % BYTES_PER_UINT32;
-	if (remainingPartialBytes > 0) {
-		uint32_t partialValue = 0xFFFFFFFF;
-		const size_t baseByteIndex = completeUint32Count * BYTES_PER_UINT32;
-
-		for (uint32_t b = 0; b < remainingPartialBytes; b++) {
-			const uint8_t shiftAmount = (3 - b) * BITS_PER_BYTE;
-			partialValue &= ~(0xFFU << shiftAmount);
-			partialValue |= (static_cast<uint32_t>(incomingData[baseByteIndex + b]) << shiftAmount);
-		}
-
-		localFlashPageBytes[baseOffset + completeUint32Count] = partialValue;
-	}
-
-	// Always write the flash page for last part
-	const uint16_t flashPageNumber = sequenceNumber / PARTS_PER_FLASH_PAGE;
-	const uint16_t logicalPage = sequenceNumber / PARTS_PER_FLASH_PAGE;
-	const uint16_t absolutePage = SECONDARY_IMAGE_START_ADDRESS + logicalPage;
-
-	const auto res = flash_write_page(absolutePage,
-									   localFlashPageBytes.data(),
-									   I_FLASH_PAGE_SIZE_U32);
-
-	if (res != Memory_Errno::NONE) {
-		Services.requestVerification.failProgressExecutionVerification(message, getSpacecraftErrorCodeFromMemoryError(res), sequenceNumber);
-		return;
-	}
-	LOG_DEBUG << "[LTF] Written final flash page: " << flashPageNumber;
-
-	if (!setMemoryParameter(message, PeakSatParameters::OBDH_LARGE_FILE_TRANFER_SEQUENCE_NUM_ID, &sequenceNumber)) {
-		Services.requestVerification.failCompletionExecutionVerification(message, OBDH_ERROR_MEMORY_UNKNOWN);
-		return;
-	}
-	uint32_t crc = 0;
-	MemoryManager::calculateFlashFileCRC32(localFilename.data(), 835568  ,crc);
-	LOG_DEBUG << "[LTF] Written flash file crc32: " << crc;
-	Services.requestVerification.successCompletionExecutionVerification(message);
 }
 
 #endif

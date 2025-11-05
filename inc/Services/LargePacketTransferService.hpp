@@ -23,21 +23,8 @@ public:
 	static constexpr uint8_t UplinkMaximumPartSize = ECSSMaxFixedOctetStringSize;
 	static constexpr uint32_t UplinkReceptionTimeout = 300U; // seconds todo revisit
 	static constexpr uint8_t MAX_FILE_NAME = 10U;
-	static constexpr uint16_t I_FLASH_PAGE_SIZE_U32 = 128U;    // IFLASH_PAGE_SIZE = 512 bytes
-	static constexpr uint16_t I_FLASH_PAGE_SIZE_U8 = 512U;     // IFLASH_PAGE_SIZE = 512 bytes
-
-	static constexpr uint8_t I_FLASH_PART_EXPECTED_BYTES  = 128U;
-
-	static constexpr uint8_t PARTS_PER_FLASH_PAGE = I_FLASH_PAGE_SIZE_U8 / I_FLASH_PART_EXPECTED_BYTES;  // 4
-	static constexpr uint8_t UINT32_PER_PART = I_FLASH_PART_EXPECTED_BYTES / sizeof(uint32_t);  // 32
-	static constexpr uint8_t BYTES_PER_UINT32 = sizeof(uint32_t);  // 4
-	static constexpr uint8_t BITS_PER_BYTE = 8U;
-
-
 
 	etl::array<char, MAX_FILE_NAME> localFilename{};
-	etl::array<uint32_t, I_FLASH_PAGE_SIZE_U32> localFlashPageBytes{};
-
 	enum MessageType : uint8_t {
 		FirstDownlinkPartReport = 1,
 		IntermediateDownlinkPartReport = 2,
@@ -48,14 +35,14 @@ public:
 		UplinkAborted = 16,
 	};
 
-	enum class UplinkLargeMessageTransactionIdentifiers : uint8_t {
+	enum class UplinkLargeMessageTransactionIdentifiers : uint16_t {
 		AtlasMcuFirmware = 33U,
 		AtlasSoftCpuFirmware = 80U,
 		AtlasBitStream = 90U,
 		ScheduledTC = 130U,
 		ObcFirmware = 140U,
 	};
-	using UplinkLargeMessageTransactionIdentifiers_t = std::underlying_type_t<UplinkLargeMessageTransactionIdentifiers>;
+	using UplinkLargeMessageTransactionIdentifiers_t = std::underlying_type<UplinkLargeMessageTransactionIdentifiers>;
 
 	/**
 	 * Default constructor since only functions will be used.
@@ -178,13 +165,6 @@ private:
 	 * Resets the transfer count parameter to 0
 	 */
 	static void resetTransferParameters();
-
-	void handleFlashIntermediateParts(Message& message);
-	void handleFlashLastPart(Message& message);
-
-	[[nodiscard]] bool isFlashFile() const {
-		return localFilename[1] == 'F';
-	}
 };
 
 #endif // ECSS_SERVICES_LARGEPACKETTRANSFERSERVICE_HPP
