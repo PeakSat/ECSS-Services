@@ -131,7 +131,13 @@ public:
 		PayloadTimerStopFailure = 44,
 		HeartbeatTimeout = 45,
 		HeartbeatTimerFailure = 46,
-		EventMax = 46
+		FilePrepared = 47,
+		FilePrepareFailed = 48,
+		FileTransmitted = 49,
+		FileTransmitFailed = 50,
+		FileCopyCompleted = 51,
+		FileCopyFailed = 52,
+		EventMax = 52
 
 	};
 
