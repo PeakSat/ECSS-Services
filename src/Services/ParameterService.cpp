@@ -2,6 +2,7 @@
 #ifdef SERVICE_PARAMETER
 
 #include "ParameterService.hpp"
+#include "etl/bit.h"
 
 
 void ParameterService::reportParameters(Message& paramIds) {
@@ -116,55 +117,59 @@ void ParameterService::appendParameterToMessage(Message& message, ParameterId pa
 
 void ParameterService::updateParameterFromMessage(Message& message, ParameterId parameter) {
 	PARAMETER_TYPE type = getParameterType(parameter);
+	const uint64_t temp_max = message.read<uint64_t>();
 
 	switch (type) {
 		case PARAMETER_TYPE::UINT8: {
-			uint8_t temp = message.read<uint8_t>();
+			uint8_t temp = static_cast<uint8_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT8: {
-			int8_t temp = message.read<int8_t>();
+			int8_t temp = static_cast<int8_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT16: {
-			uint16_t temp = message.read<uint16_t>();
+			uint16_t temp = static_cast<uint16_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT16: {
-			int16_t temp = message.read<int16_t>();
+			int16_t temp = static_cast<int16_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT32: {
-			uint32_t temp = message.read<uint32_t>();
+			uint32_t temp = static_cast<uint32_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT32: {
-			int32_t temp = message.read<int32_t>();
+			int32_t temp = static_cast<int32_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::FLOAT: {
-			float temp = message.read<float>();
+			float temp = 0;
+			const uint32_t temp_raw = static_cast<uint32_t>(temp_max);
+			memcpy(&temp, &temp_raw, sizeof(temp));
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::UINT64: {
-			uint64_t temp = message.read<uint64_t>();
+			uint64_t temp = static_cast<uint64_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::INT64: {
-			int64_t temp = message.read<int64_t>();
+			int64_t temp = static_cast<int64_t>(temp_max);
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
 		case PARAMETER_TYPE::DOUBLE: {
-			double temp = message.read<double>();
+			double temp = 0;
+			memcpy(&temp, &temp_max, sizeof(temp));
 			MemoryManager::setParameter(parameter, static_cast<void*>(&temp));
 			break;
 		}
