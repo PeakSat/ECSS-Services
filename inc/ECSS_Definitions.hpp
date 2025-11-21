@@ -101,7 +101,7 @@ inline constexpr uint8_t ECSSTCRequestStringSize = 64;
  * The maximum number of activities that can be in the time-based schedule
  * @see TimeBasedSchedulingService
  */
-inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 30;
+inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 25;
 
 /**
  * @brief Time margin used in the time based command scheduling service ST[11]
