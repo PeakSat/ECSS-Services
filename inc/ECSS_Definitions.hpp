@@ -252,7 +252,7 @@ inline constexpr struct {
 /**
  * Maximum number of ST[12] Parameter Monitoring Definitions.
  */
-inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 6;
+inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 8;
 
 /**
  * @brief Frequency at which the checkAll method is called
