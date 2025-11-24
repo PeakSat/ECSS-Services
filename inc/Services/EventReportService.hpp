@@ -122,7 +122,22 @@ public:
 		NANDError = 36,
 		TCWatchdogTimeout = 37,
 		SatResetFailed = 38,
-		EventMax = 39
+		ADCS_Error = 39,
+		ADCSAngratesHigh = 40,
+		ADCSEstNone = 41,
+		ADCSConNone = 42,
+		PayloadTimerFailure = 43,
+		PayloadTimerStartFailure = 43,
+		PayloadTimerStopFailure = 44,
+		HeartbeatTimeout = 45,
+		HeartbeatTimerFailure = 46,
+		FilePrepared = 47,
+		FilePrepareFailed = 48,
+		FileTransmitted = 49,
+		FileTransmitFailed = 50,
+		FileCopyCompleted = 51,
+		FileCopyFailed = 52,
+		EventMax = 52
 
 	};
 

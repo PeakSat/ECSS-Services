@@ -40,7 +40,7 @@ public:
 		AtlasSoftCpuFirmware = 80U,
 		AtlasBitStream = 90U,
 		ScheduledTC = 130U,
-		ObcFirmware = 150U,
+		ObcFirmware = 140U,
 	};
 	using UplinkLargeMessageTransactionIdentifiers_t = std::underlying_type<UplinkLargeMessageTransactionIdentifiers>;
 
@@ -85,19 +85,26 @@ public:
 	 * TC[13,9] Function that handles the first part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	 void firstUplinkPart(Message& message);
+	void firstUplinkPart(Message& message);
 
 	/**
 	 * TC[13,10] Function that handles the n-2 parts of the n-part uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	 void intermediateUplinkPart(Message& message);
+	void intermediateUplinkPart(Message& message);
 
 	/**
 	 * TC[13,11] Function that handles the last part of the uplink request
 	 * @param string This will change when these function will be modified
 	 */
-	 void lastUplinkPart(Message& message);
+	void lastUplinkPart(Message& message);
+
+	/**
+ 	 * TM[13,16] Generate large packet uplink abortion report
+ 	 * @param largeMessageTransactionIdentifier The identifier of the large packet transfer being aborted
+ 	 * @param abortionReason The spacecraft error code indicating the reason for abortion
+ 	 */
+	void uplinkAbortionReport(LargeMessageTransactionId largeMessageTransactionIdentifier, SpacecraftErrorCode abortionReason) const;
 
 	static bool isValidUpLinkIdentifier(UplinkLargeMessageTransactionIdentifiers id);
 

@@ -102,9 +102,9 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
 		return OBDH_ERROR_MESSAGE_PARSER_PARSE_LENGTH_LESS_THAN_EXPECTED;
 	}
 	if (parse_ccsds == false) {
-		return OBDH_ERROR_MESSAGE_PARSER_PARSE_WRONG_PUS_VERSION;
-	}
+		return OBDH_ERROR_MESSAGE_PARSER_WRONG_USAGE;
 
+	}
 	uint16_t const packetHeaderIdentification = (data[0] << 8) | data[1];
 	uint16_t const packetSequenceControl = (data[2] << 8) | data[3];
 	uint16_t const packetCCSDSDataLength = (data[4] << 8) | data[5];
@@ -113,10 +113,17 @@ SpacecraftErrorCode MessageParser::parse(const uint8_t* data, uint32_t length, M
 	Message::PacketType const packet_type = ((data[0] & 0x10) == 0) ? Message::TM : Message::TC;
 	bool const secondaryHeaderFlag = (data[0] & 0x08U) != 0U;
 	ApplicationProcessId const APID = packetHeaderIdentification & static_cast<ApplicationProcessId>(0x07ff);
-	const auto sequenceFlags = static_cast<uint8_t>(packetSequenceControl >> 14);
-	SequenceCount const packetSequenceCount = packetSequenceControl & (~0xc000U); // keep last 14 bits
 
-	message = Message(0, 0, packet_type, APID);
+	// Extract the 11-bit APID into its components:
+	// - Bits 10-9 (2 MSBs): application_ID
+	// - Bits 8-0 (9 LSBs): spacecraftID
+	uint8_t const application_ID = (APID >> 9U) & 0x3U;        // Extract bits 10-9
+	uint16_t const spacecraftID = APID & 0x1FFU;                   // Extract bits 8-0
+
+	auto sequenceFlags = static_cast<uint8_t>(packetSequenceControl >> 14);
+	SequenceCount const packetSequenceCount = packetSequenceControl & (~0xc000U);
+
+	message = Message(0, 0, packet_type, application_ID);
 
 	if ((packet_type == Message::TM) && (length < ECSSSecondaryTMHeaderSize)) {
 		return OBDH_ERROR_MESSAGE_PARSER_TM_SIZE_LESS_THAN_EXPECTED;
@@ -196,6 +203,7 @@ SpacecraftErrorCode MessageParser::parseECSSTCHeader(const uint8_t* data, Messag
 	message.messageType = messageType;
 	message.source_ID_ = sourceId;
 	etl::copy_n(data + ECSSSecondaryTCHeaderSize, message.data_size_ecss_, message.data.begin());
+	message.data_size_message_ = message.data_size_ecss_;
 
 	return GENERIC_ERROR_NONE;
 }
@@ -291,10 +299,18 @@ etl::expected<String<CCSDSMaxMessageSize>, SpacecraftErrorCode> MessageParser::c
 	const auto& data = result.value();
 
 	// Parts of the header
-	ApplicationProcessId packetId = message.application_ID_;
-	packetId |= (1U << 11U); // Secondary header flag
-	packetId |= (message.packet_type_ == Message::TC) ? (1U << 12U)
-	                                                  : (0U); // Ignore-MISRA
+	ApplicationProcessId packetId = ((message.application_ID_ & 0x3U) << 9U) | (SpacecraftID & 0x1FFU);
+
+	// Add packet version number (bits 15-13, typically 0b000 for CCSDS)
+	packetId |= (0U << 13U);  // Packet version number = 0
+
+	// Secondary header flag (bit 11)
+	packetId |= (1U << 11U);
+
+	// Packet type (bit 12): TC=1, TM=0
+	packetId |= (message.packet_type_ == Message::TC) ? (1U << 12U) : (0U);
+
+
 	SequenceCount const packetSequenceControl = message.packet_sequence_count_ | (3U << 14U);
 	const uint16_t packetCCSDSDataLength = data.size() - 1;
 
@@ -344,6 +360,7 @@ SpacecraftErrorCode MessageParser::parseECSSTMHeader(const uint8_t* data, uint16
 	message.messageType = messageType;
 	std::copy(data + ECSSSecondaryTMHeaderSize, data + length, message.data.begin());
 	message.data_size_ecss_ = length - ECSSSecondaryTMHeaderSize;
+	message.data_size_message_ = message.data_size_ecss_;
 
 	return GENERIC_ERROR_NONE;
 }

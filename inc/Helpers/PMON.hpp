@@ -180,9 +180,9 @@ public:
 		uint64_t maskedValue = currentValueAsUint64 & getMask();
 
 		if (maskedValue == getExpectedValue()) {
-			checkingStatus = ExpectedValue;
-		} else {
 			checkingStatus = UnexpectedValue;
+		} else {
+			checkingStatus = ExpectedValue;
 		}
 
 		if (checkingStatus == previousStatus) {

@@ -101,7 +101,7 @@ inline constexpr uint8_t ECSSTCRequestStringSize = 64;
  * The maximum number of activities that can be in the time-based schedule
  * @see TimeBasedSchedulingService
  */
-inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 10;
+inline constexpr uint8_t ECSSMaxNumberOfTimeSchedActivities = 25;
 
 /**
  * @brief Time margin used in the time based command scheduling service ST[11]
@@ -115,7 +115,7 @@ inline constexpr std::chrono::duration<uint8_t> ECSSTimeMarginForActivation(60);
  * @brief Maximum size of an event's auxiliary data
  * @see EventReportService
  */
-inline constexpr uint8_t ECSSEventDataAuxiliaryMaxSize = 64;
+inline constexpr uint8_t ECSSEventDataAuxiliaryMaxSize = 128;
 
 /**
  * @brief Size of the multimap that holds every event-action definition
@@ -135,6 +135,11 @@ inline constexpr uint8_t ECSSMaxDeltaOfReleaseTime = 60;
 inline constexpr uint16_t ECSSMaxSimplyCommutatedParameters = 20;
 
 /**
+ * The size of each housekeeping structure in the default array (structureId + collectionInterval(2) + isPeriodic + count + parameters)
+ */
+inline constexpr uint8_t ECSSHousekeepingStructureArraySize = 5 + ECSSMaxSimplyCommutatedParameters;
+
+/**
  * The number of functions supported by the \ref FunctionManagementService
  */
 inline constexpr uint8_t ECSSFunctionMapSize = 5;
@@ -149,7 +154,7 @@ inline constexpr uint8_t ECSSFunctionNameLength = 32;
  * The maximum length of the argument of a function
  * @see FunctionManagementService
  */
-inline constexpr uint8_t ECSSFunctionMaxArgLength = 32;
+inline constexpr uint8_t ECSSFunctionMaxArgLength = 175;
 
 /**
  * @brief The maximum size of a log message
@@ -198,7 +203,7 @@ inline constexpr uint16_t ECSSPacketStoreIdSize = 15;
 /**
  * @brief Defines the max number of housekeeping structs that the housekeeping service can contain
  */
-inline constexpr uint8_t ECSSMaxHousekeepingStructures = 24;
+inline constexpr uint8_t ECSSMaxHousekeepingStructures = 50;
 
 /**
  * The max number of controlled application processes
@@ -247,7 +252,7 @@ inline constexpr struct {
 /**
  * Maximum number of ST[12] Parameter Monitoring Definitions.
  */
-inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 4;
+inline constexpr uint8_t ECSSMaxMonitoringDefinitions = 8;
 
 /**
  * @brief Frequency at which the checkAll method is called
@@ -260,6 +265,9 @@ inline constexpr std::chrono::seconds ECSSMonitoringFrequency(60);
  * In the ECSS-E-ST-70-41C the application ID is also referred as application process.
  */
 inline constexpr uint16_t ApplicationId = 1;
+
+inline constexpr uint16_t SpacecraftID = 0x1A5;
+
 
 /** @} */
 #endif // ECSS_SERVICES_ECSS_DEFINITIONS_H

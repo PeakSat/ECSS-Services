@@ -258,7 +258,7 @@ void TimeBasedSchedulingService::executeScheduledActivity(UTCTimestamp currentTi
 		if (_activity.requestID.applicationID == ApplicationId) {
 			auto status = tcHandlingTask->addToQueue(_activity.request, 20);
 			if (status == true) {
-				xTaskNotify(tcHandlingTask->taskHandle, TASK_BIT_TC_HANDLING, eSetBits);
+				xTaskNotify(tcHandlingTask->taskHandle, 0U, eSetBits);
 				LOG_DEBUG<<"[TC_SCHEDULING] Added activity to TC Handling queue";
 			}else {
 				LOG_ERROR<<"[TC_SCHEDULING] Failed to add activity to TC Handling queue";

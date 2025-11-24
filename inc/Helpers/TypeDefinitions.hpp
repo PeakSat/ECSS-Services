@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-using StepId = uint8_t;
+using StepId = uint16_t;
 using ParameterReportStructureId = uint16_t;
 using EventDefinitionId = uint16_t;
 using EventActionId = uint16_t;
