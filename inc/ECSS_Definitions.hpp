@@ -115,7 +115,7 @@ inline constexpr std::chrono::duration<uint8_t> ECSSTimeMarginForActivation(60);
  * @brief Maximum size of an event's auxiliary data
  * @see EventReportService
  */
-inline constexpr uint8_t ECSSEventDataAuxiliaryMaxSize = 64;
+inline constexpr uint8_t ECSSEventDataAuxiliaryMaxSize = 128;
 
 /**
  * @brief Size of the multimap that holds every event-action definition
